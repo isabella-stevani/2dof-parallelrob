@@ -11,9 +11,9 @@ The purpose of this project is to combine feedback linearization and H-infinity 
 
 ### Methods Used
 * Parallel mechanism modeling method developed by André Garnier Coutinho
-* Feedback minearization
+* Feedback linearization
 * H-infinity design
-* Runge-Kutta
+* 4th order Runge-Kutta
 
 ### Technologies
 * MATLAB
