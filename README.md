@@ -1,5 +1,5 @@
 # Robust Control of a 2-DOF Parallel Mechanism
-This project refers to the master thesis entitled "Robust Control of a 2-DOF Parallel Mechanism Combining Feedback Linearization and H-infinity Design" developed by Isabella Stevani with the supervision of Profesor Diego Colón, both from the Laboratory of Automation and Control of the University of São Paulo - LAC/USP. More details about the control and modeling methodologies used in the codes presented here could be found at the master thesis qualification text available soon at Research Gate. 
+This project refers to the master thesis entitled "Robust Control of a 2-DOF Parallel Mechanism Combining Feedback Linearization and H-infinity Design" developed by Isabella Stevani with the supervision of Professor Diego Colón, both from the Laboratory of Automation and Control of the University of São Paulo - LAC/USP. More details about the control and modeling methodologies used in the codes presented here could be found at the master thesis qualification text available soon at Research Gate. 
 
 #### -- Project Status: Active
 
