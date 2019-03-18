@@ -96,12 +96,12 @@ for i = 1:6
     subplot(3,2,i)
     plot(t,q(i,:),'-b');
     grid on;
-    lgd = legend(leg);
+%     lgd = legend(leg);
     xl = xlabel(xlab);
     yl = ylabel(ylab{i});
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
-    set(lgd,'FontSize',12);
+%     set(lgd,'FontSize',12);
 end
 supertitle(tlab,18);
 lines = findobj(gcf,'Type','Line');
@@ -111,20 +111,20 @@ end
 set(gcf,'PaperPositionMode','auto');
 saveas(gcf,['images/cntr_nomsim_states','.eps'], 'epsc');
 saveas(gcf,'images/cntr_nomsim_states.png');
-
+% 
 % Control signal
 figure; leg = {'FL'};
 xlab = {'','Time [s]'};
-ylab = {'tau1 [N.m]','tau2 [N.m]'};
+ylab = {'u1 [N.m]','u2 [N.m]'};
 tlab = 'Control Signals';
 for i = 1:2
     subplot(2,1,i)
     plot(t,u(i,:),'-b');
     grid on;
-    lgd = legend(leg);
+%     lgd = legend(leg);
     xl = xlabel(xlab{i});
     yl = ylabel(ylab{i});
-    set(lgd,'FontSize',12);
+%     set(lgd,'FontSize',12);
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
 end
@@ -137,7 +137,7 @@ set(gcf,'PaperPositionMode','auto');
 saveas(gcf,['images/cntr_nomsim_cntrsig','.eps'], 'epsc');
 saveas(gcf,'images/cntr_nomsim_cntrsig.png');
 
-% States' errors 
+% Actuated states errors
 r = ref(1:2,:);
 e = r-[q(3,:);q(5,:)];
 figure; leg = {'FL'};
@@ -148,10 +148,10 @@ for i = 1:2
     subplot(2,1,i)
     plot(t,e(i,:),'-b');
     grid on;
-    lgd = legend(leg);
+%     lgd = legend(leg);
     xl = xlabel(xlab{i});
     yl = ylabel(ylab{i});
-    set(lgd,'FontSize',12);
+%     set(lgd,'FontSize',12);
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
 end
