@@ -1,5 +1,5 @@
-function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda,ref,cord)
-% Computes parallel mechanism dynamics.
+function [q,dq,u] = ParallelRobDynamics_d(x0,t,param,uncparam,lambda,ref,cord)
+% Computes parallel mechanism discrete dynamics.
 % Inputs:
 %   x0: initial state vector
 %   t: time vector

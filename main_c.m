@@ -1,7 +1,7 @@
 % Author: Isabella Stevani, Masters Student
 % Master's Dissertation Project: Robust Control of a 2-DOF Parallel
 % Mechanism Combining Feedback Linearization and H-Infinity Design
-% Code: Discrete Control Design and Simulation
+% Code: Continuous Control Design and Simulation
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
@@ -47,12 +47,10 @@ param.Jz2 = Jz2;
 
 %%% Nominal linearized model
 lambda = 40; %FL parameter [rad/s]
-z = tf('z');
+s = tf('s');
 
-% Discrete model
-z1 = 0.82; z2 = 0.8; z3 = 0.22;
-Gd = (T^2/8)*((1-z1)*(1-z2)*(1-z3)*z*(1+z)^3)/((-1+z)^2*(-z1+z)*(-z2+z)*(-z3+z));
-Gd.Ts = T;
+% Continuous model
+G = 1/(s+lambda)^2;
 
 %% Simulation parameters
 
@@ -85,7 +83,7 @@ ref = ParallelRobDynRef(x0,t,param,inputfunc,lambda,cord);
 %% Nominal simulation
 
 %%% Dynamics
-[q,dq,u] = ParallelRobDynamics_d(x0,t,param,param,lambda,ref,cord);
+[q,dq,u] = ParallelRobDynamics_c(x0,t,param,param,lambda,ref,cord,T);
 
 % States
 figure; leg = {'FL'};
