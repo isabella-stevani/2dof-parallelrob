@@ -1,13 +1,13 @@
 % Author: Isabella Stevani, Masters Student
 % Master's Dissertation Project: Robust Control of a 2-DOF Parallel
 % Mechanism Combining Feedback Linearization and H-Infinity Design
-% Code: Discrete Control Design and Simulation
+% Code: Discrete Control Design and Simulationclos
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
 % Creation: Aug 2018; Last revision: 18-Mar-2019
 
-% close all; clear; clc;
+close all; clear; clc;
 
 %------------- BEGIN OF CODE --------------
 

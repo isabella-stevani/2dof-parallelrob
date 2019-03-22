@@ -1,4 +1,5 @@
-function [dx] = ParallelRobDynEDO(t,x,param,uncparam,lambda,ref,cord,T)
+function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,ref,cord,T, ...
+    var)
 % Parallel mechanism dynamic model for ODE method.
 % Inputs:
 %   t: time
@@ -62,7 +63,11 @@ function [dx] = ParallelRobDynEDO(t,x,param,uncparam,lambda,ref,cord,T)
     z = [u+Cunc'*(-Vunc-Gunc);
     -dAunc*dq-2*lambdabar*Aunc*dq-lambdabar^2*qbarunc];
     d2q = Z\z;
-    
     dx = [dq;d2q];
-
+    
+    if strcmp(var,'x')
+        out = dx;
+    elseif strcmp(var,'u')
+        out = u;
+    end
 end

@@ -15,10 +15,16 @@ function [q,dq,u] = ParallelRobDynamics_c(x0,t,param,uncparam,lambda,ref,cord,T)
     
     lambdabar = 10*lambda; %quick convergence for coupling equations
     [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam,lambda, ...
-        ref,cord,T),t,x0);
+        ref,cord,T,'x'),t,x0);
     
-    q = x(:,1:6)';
-    dq = x(:,7:12)';
+    x = x';
+    q = x(1:6,:);
+    dq = x(7:12,:);
     u = zeros(2,length(t));
+    
+    for i = 1:length(t)
+        u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam,lambda, ...
+        ref,cord,T,'u');
+    end
 
 end
