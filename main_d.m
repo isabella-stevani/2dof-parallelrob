@@ -58,6 +58,7 @@ Gd.Ts = T;
 
 tsim = 1; %simulation time [s]
 t = 0:T:tsim; %simulation time vector
+sat = 2; %actuators' saturation
 
 %%% Initial conditions
 r_xy = [0.07; 0.17]; %end-effector initial condition
@@ -85,7 +86,7 @@ ref = ParallelRobDynRef(x0,t,param,inputfunc,lambda,cord);
 %% Nominal simulation
 
 %%% Dynamics
-[q,dq,u] = ParallelRobDynamics_d(x0,t,param,param,lambda,ref,cord);
+[q,dq,u] = ParallelRobDynamics_d(x0,t,param,param,lambda,ref,cord,T,sat);
 
 % States
 figure; leg = {'FL'};

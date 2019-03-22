@@ -1,4 +1,5 @@
-function [q,dq,u] = ParallelRobDynamics_c(x0,t,param,uncparam,lambda,ref,cord,T)
+function [q,dq,u] = ParallelRobDynamics_c(x0,t,param,uncparam,lambda, ...
+    ref,cord,T,sat)
 % Computes parallel mechanism continuous dynamics.
 % Inputs:
 %   x0: initial state vector
@@ -8,6 +9,8 @@ function [q,dq,u] = ParallelRobDynamics_c(x0,t,param,uncparam,lambda,ref,cord,T)
 %   lambda: FL control parameter
 %   ref: reference signal
 %   cord: actuated coordinates
+%   T: sample time
+%   sat: actuators' saturation
 % Outputs:
 %   q: mechanism coordinates [6x1]
 %   dq: mechanism coordinates derivative [6x1]
@@ -15,7 +18,7 @@ function [q,dq,u] = ParallelRobDynamics_c(x0,t,param,uncparam,lambda,ref,cord,T)
     
     lambdabar = 10*lambda; %quick convergence for coupling equations
     [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam,lambda, ...
-        ref,cord,T,'x'),t,x0);
+        ref,cord,T,sat,'x'),t,x0);
     
     x = x';
     q = x(1:6,:);
@@ -24,7 +27,7 @@ function [q,dq,u] = ParallelRobDynamics_c(x0,t,param,uncparam,lambda,ref,cord,T)
     
     for i = 1:length(t)
         u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam,lambda, ...
-        ref,cord,T,'u');
+        ref,cord,T,sat,'u');
     end
 
 end
