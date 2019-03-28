@@ -1,4 +1,4 @@
-function [u] = RobustControlLaw(x,ref,param,lambda,cord)
+function [u] = RobustControlLaw(x,ref,param,lambda,cord,sat)
 % Computes robust control law.
 % Inputs:
 %   x: state vector
@@ -6,6 +6,7 @@ function [u] = RobustControlLaw(x,ref,param,lambda,cord)
 %   param: model parameters
 %   lambda: FL control parameter
 %   cord: actuated coordinates
+%   sat: actuators' saturation
 % Outputs:
 %   u: control signal [2x1]
 
@@ -60,6 +61,6 @@ function [u] = RobustControlLaw(x,ref,param,lambda,cord)
     Ma = C'*M*C;
     Va = C'*(M*dC*dqa+V);
     Ga = C'*G;
-    u = Va+Ga+Ma*(d2r+2*lambda*dea+lambda^2*ea); %control signal
+    u = sat*tanh((Va+Ga+Ma*(d2r+2*lambda*dea+lambda^2*ea))/sat); %control signal
 
 end
