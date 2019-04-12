@@ -10,8 +10,8 @@ function [qbar,A,dA,C,dC] = ParallelRobKinMatrix(q,dq,param,Qa,Qp)
 %   qbar: mechanical coupling vector [6x1]
 %   A:  coupling matrix A [6x6]
 %   dA: A matrix derivative [6x6]
-%   C: coupling matrix C [6x6]
-%   dC: C matrix derivative [6x6]
+%   C: coupling matrix C [6x2]
+%   dC: C matrix derivative [6x2]
 
     % Model parameters and coordinates
     g = param.g;
