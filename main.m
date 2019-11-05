@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Aug 2018; Last revision: 26-Mar-2019
+% Creation: Aug 2018; Last revision: 04-Nov-2019
 
 close all; clear; clc;
 
@@ -77,31 +77,42 @@ inputfunc = @RoundInput; %round reference signal
 % inputfunc = @ConstantInput; %constant reference signal
 
 % Signal computation
-ref = ParallelRobDynRef(x0,t,param,inputfunc,lambda,cord);
+ref = ParallelRobDynRef(x0,t,param,inputfunc,lambda);
 % save('ref_theta.mat','ref');
 % load('ref_theta');
 
 %% Nominal simulation
 
+% Without feedforward
 %%% Dynamics
-[q,dq,u] = ParallelRobDynamics_c(x0,t,param,param,lambda,ref,cord,T,sat);
+FF.on = false;
+[q,dq,u] = ParallelRobDynamics(x0,t,param,param,lambda,ref,cord,T, ...
+    sat,FF);
+
+% With feedforward
+%%% Dynamics
+FF.on = true;
+[q_FF,dq_FF,u_FF] = ParallelRobDynamics(x0,t,param,param,lambda, ...
+    ref,cord,T,sat,FF);
 
 % States
-figure; leg = {'FL'};
+figure; leg = {'Without FF','With FF'};
 ylab = {'x [m]','y [m]','t11 [rad]','t12 [rad]','t21 [rad]','t22 [rad]'};
 xlab = 'Time [s]';
 tlab = 'States';
 for i = 1:6
-    subplot(3,2,i)
+    subplot(3,2,i); hold on;
     plot(t,q(i,:),'-b');
+    plot(t,q_FF(i,:),'-r');
+    hold off;
     grid on;
-%     lgd = legend(leg);
     xl = xlabel(xlab);
     yl = ylabel(ylab{i});
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
-%     set(lgd,'FontSize',12);
 end
+lgd = legend(leg);
+set(lgd,'FontSize',12);
 supertitle(tlab,18);
 lines = findobj(gcf,'Type','Line');
 for i = 1:numel(lines)
@@ -112,21 +123,23 @@ saveas(gcf,['images/continuous/cntr_nomsim_states','.eps'], 'epsc');
 saveas(gcf,'images/continuous/cntr_nomsim_states.png');
 % 
 % Control signal
-figure; leg = {'FL'};
+figure; leg = {'Without FF','With FF'};
 xlab = {'','Time [s]'};
 ylab = {'u1 [N.m]','u2 [N.m]'};
 tlab = 'Control Signals';
 for i = 1:2
-    subplot(2,1,i)
+    subplot(2,1,i); hold on;
     plot(t,u(i,:),'-b');
+    plot(t,u_FF(i,:),'-r');
     grid on;
-%     lgd = legend(leg);
+    hold off;
     xl = xlabel(xlab{i});
     yl = ylabel(ylab{i});
-%     set(lgd,'FontSize',12);
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
 end
+lgd = legend(leg);
+set(lgd,'FontSize',12);
 lines = findobj(gcf,'Type','Line');
 for i = 1:numel(lines)
   lines(i).LineWidth = 2;
@@ -137,23 +150,32 @@ saveas(gcf,['images/continuous/cntr_nomsim_cntrsig','.eps'], 'epsc');
 saveas(gcf,'images/continuous/cntr_nomsim_cntrsig.png');
 
 % Actuated states errors
-r = ref(1:2,:);
-e = r-[q(3,:);q(5,:)];
-figure; leg = {'FL'};
+if strcmp(cord,'xy')
+    r = [ref(1,:);ref(2,:)];
+    e = r-[q(1,:);q(2,:)];
+    e_FF = r-[q_FF(1,:);q_FF(2,:)];
+elseif strcmp(cord,'theta')
+    r = [ref(3,:);ref(5,:)];
+    e = r-[q(3,:);q(5,:)];
+    e_FF = r-[q_FF(3,:);q_FF(5,:)];
+end
+figure; leg = {'Without FF','With FF'};
 xlab = {'','Time [s]'};
 ylab = {'e1 [rad]','e2 [rad]'};
 tlab = 'Actuated Angle Errors';
 for i = 1:2
-    subplot(2,1,i)
+    subplot(2,1,i); hold on;
     plot(t,e(i,:),'-b');
+    plot(t,e_FF(i,:),'-r');
     grid on;
-%     lgd = legend(leg);
+    hold off;
     xl = xlabel(xlab{i});
     yl = ylabel(ylab{i});
-%     set(lgd,'FontSize',12);
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
 end
+lgd = legend(leg);
+set(lgd,'FontSize',12);
 lines = findobj(gcf,'Type','Line');
 for i = 1:numel(lines)
   lines(i).LineWidth = 2;
@@ -187,15 +209,24 @@ for i = 1:n
     uncparam.Jz1 = round(Jz1*(1+tolI*(-1+rand(1)*2)),p);
     uncparam.Jz2 = round(Jz2*(1+tolI*(-1+rand(1)*2)),p);
     
+    % Without feedforward
     %%% Dynamics
-    [q,dq,u] = ParallelRobDynamics_c(x0,t,param,uncparam,lambda,ref,...
-        cord,T,sat);
+    FF.on = false;
+    [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda,ref,cord, ...
+        T,sat,FF);
 
+    % With feedforward
+    %%% Dynamics
+    FF.on = true;
+    [q_FF,dq_FF,u_FF] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
+        ref,cord,T,sat,FF);
+    
     % States
     figure(fig_x);
     for i = 1:6
         subplot(3,2,i); hold on;
         plot(t,q(i,:),'-b');
+        plot(t,q_FF(i,:),'-r');
     end
     
     % Control signal
@@ -203,15 +234,24 @@ for i = 1:n
     for i = 1:2
         subplot(2,1,i); hold on;
         plot(t,u(i,:),'-b');
+        plot(t,u_FF(i,:),'-r');
     end
 
     % Actuated states errors
-    r = ref(1:2,:);
-    e = r-[q(3,:);q(5,:)];
+    if strcmp(cord,'xy')
+        r = [ref(1,:);ref(2,:)];
+        e = r-[q(1,:);q(2,:)];
+        e_FF = r-[q_FF(1,:);q_FF(2,:)];
+    elseif strcmp(cord,'theta')
+        r = [ref(3,:);ref(5,:)];
+        e = r-[q(3,:);q(5,:)];
+        e_FF = r-[q_FF(3,:);q_FF(5,:)];
+    end
     figure(fig_e);
     for i = 1:2
         subplot(2,1,i); hold on;
         plot(t,e(i,:),'-b');
+        plot(t,e_FF(i,:),'-r');
     end
     
 end
@@ -219,19 +259,19 @@ end
 % Graphics
 
 %%% States
-leg = {'FL'};
+leg = {'Without FF','With FF'};
 ylab = {'x [m]','y [m]','t11 [rad]','t12 [rad]','t21 [rad]','t22 [rad]'};
 xlab = 'Time [s]';
 tlab = 'States';
 figure(fig_x); hold off;
 for i = 1:6
-%     lgd = legend(leg);
     xl = xlabel(xlab);
     yl = ylabel(ylab{i});
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
-%     set(lgd,'FontSize',12);
 end
+lgd = legend(leg);
+set(lgd,'FontSize',12);
 supertitle(tlab,18);
 lines = findobj(gcf,'Type','Line');
 for i = 1:numel(lines)
@@ -242,7 +282,7 @@ saveas(gcf,['images/continuous/cntr_uncsim_states','.eps'], 'epsc');
 saveas(gcf,'images/continuous/cntr_uncsim_states.png');
 
 %%% Control signal
-leg = {'FL'};
+leg = {'Without FF','With FF'};
 xlab = {'','Time [s]'};
 ylab = {'u1 [N.m]','u2 [N.m]'};
 tlab = 'Control Signals';
@@ -250,13 +290,12 @@ figure(fig_u); hold off;
 for i = 1:2
     subplot(2,1,i)
     grid on;
-%     lgd = legend(leg);
     xl = xlabel(xlab{i});
     yl = ylabel(ylab{i});
-%     set(lgd,'FontSize',12);
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
 end
+set(lgd,'FontSize',12);
 lines = findobj(gcf,'Type','Line');
 for i = 1:numel(lines)
     lines(i).LineWidth = 2;
@@ -267,7 +306,7 @@ saveas(gcf,['images/continuous/cntr_uncsim_cntrsig','.eps'], 'epsc');
 saveas(gcf,'images/continuous/cntr_uncsim_cntrsig.png');
 
 %%% Actuated states errors
-leg = {'FL'};
+leg = {'Without FF','With FF'};
 xlab = {'','Time [s]'};
 ylab = {'e1 [rad]','e2 [rad]'};
 tlab = 'Actuated Angle Errors';
@@ -275,13 +314,12 @@ figure(fig_e); hold off;
 for i = 1:2
     subplot(2,1,i)
     grid on;
-%     lgd = legend(leg);
     xl = xlabel(xlab{i});
     yl = ylabel(ylab{i});
-%     set(lgd,'FontSize',12);
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
 end
+set(lgd,'FontSize',12);
 lines = findobj(gcf,'Type','Line');
 for i = 1:numel(lines)
     lines(i).LineWidth = 2;

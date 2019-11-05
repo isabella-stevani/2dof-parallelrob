@@ -1,5 +1,5 @@
-function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,ref,cord,T, ...
-    sat,outvar)
+function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,lambdabar, ...
+    ref,Qa,Qp,cord,T,sat,outvar,FF)
 % Parallel mechanism dynamic model for ODE method.
 % Inputs:
 %   t: time
@@ -7,7 +7,9 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,ref,cord,T, ...
 %   param: model nominal parameters
 %   uncparam: model real parameters
 %   lambda: FL control parameter
+%   lambdabar: FL model convergence parameter
 %   ref: reference signal
+%   Qa,Qp: actuated and passive coordinates
 %   cord: actuated coordinates
 %   T: sample time
 %   sat: actuators' saturation
@@ -24,45 +26,12 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,ref,cord,T, ...
     q = x(1:6);
     dq = x(7:12);
     
-    % Splitting model in active and passive coordinates
-    if strcmp(cord,'xy')
-        Qa = [1 0;
-              0 1;
-              0 0;
-              0 0;
-              0 0;
-              0 0];
-
-        Qp = [0 0 0 0;
-               0 0 0 0;
-               1 0 0 0;
-               0 1 0 0;
-               0 0 1 0;
-               0 0 0 1];
-    elseif strcmp(cord,'theta')
-        Qa = [0 0;
-              0 0;
-              1 0;
-              0 0;
-              0 1;
-              0 0];
-
-        Qp = [1 0 0 0;
-               0 1 0 0;
-               0 0 0 0;
-               0 0 1 0;
-               0 0 0 0;
-               0 0 0 1];
-    end
-    
-    lambdabar = 10*lambda;
-    
     % Kinematics' matrices
     [qbarunc,Aunc,dAunc,Cunc,~] = ParallelRobKinMatrix(q,dq,uncparam,Qa,Qp);
     % Dynamics' matrices
     [Munc,Vunc,Gunc] = ParallelRobDynMatrix(q,dq,uncparam);
     % Robust control law
-    u = RobustControlLaw(x,ref,param,lambda,cord,sat);
+    u = RobustControlLaw(x,ref,cord,param,lambda,Qa,Qp,sat,FF);
     % Dynamic simulation model
     Z = [Cunc'*Munc;Aunc];
     z = [u+Cunc'*(-Vunc-Gunc);
