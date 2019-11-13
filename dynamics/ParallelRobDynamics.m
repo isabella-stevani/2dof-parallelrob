@@ -50,6 +50,33 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
     
     lambdabar = 10*lambda; %quick convergence for coupling equations
     
+    % Feedback linearization matrices previously computed when feedforward
+    % is enable
+    if FF.on
+        len_t = length(t);
+        len_u = 2;
+        Ma = zeros(len_u,len_u,len_t);
+        Va = zeros(len_u,len_t);
+        Ga = zeros(len_u,len_t);
+        
+        q = ref(1:6,:);
+        dq = ref(7:12,:);
+        
+        for i = 1:len_t
+            [~,~,~,C,dC] = ParallelRobKinMatrix(q(:,i), ...
+                dq(:,i),param,Qa,Qp);
+            [M,V,G] = ParallelRobDynMatrix(q(:,i), ...
+                dq(:,i),param);
+            dqa = Qa'*dq(:,i);
+            Ma(:,:,i) = C'*M*C;
+            Va(:,i) = C'*(M*dC*dqa+V);
+            Ga(:,i) = C'*G;
+        end
+        FF.Ma = Ma;
+        FF.Va = Va;
+        FF.Ga = Ga;
+    end
+    
     [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam,lambda, ...
         lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF),t,x0);
     

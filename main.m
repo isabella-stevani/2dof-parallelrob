@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Aug 2018; Last revision: 04-Nov-2019
+% Creation: Aug 2018; Last revision: 12-Nov-2019
 
 close all; clear; clc;
 

@@ -31,7 +31,7 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,lambdabar, ...
     % Dynamics' matrices
     [Munc,Vunc,Gunc] = ParallelRobDynMatrix(q,dq,uncparam);
     % Robust control law
-    u = RobustControlLaw(x,ref,cord,param,lambda,Qa,Qp,sat,FF);
+    u = RobustControlLaw(x,ref,cord,param,lambda,Qa,Qp,sat,FF,pos);
     % Dynamic simulation model
     Z = [Cunc'*Munc;Aunc];
     z = [u+Cunc'*(-Vunc-Gunc);
