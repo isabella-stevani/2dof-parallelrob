@@ -1,5 +1,5 @@
 function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
-    ref,cord,T,sat,FF)
+    ref,cord,T,sat,FF,loop)
 % Computes parallel mechanism continuous dynamics.
 % Inputs:
 %   x0: initial state vector
@@ -12,6 +12,7 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
 %   T: sample time
 %   sat: actuators' saturation
 %   FF: feedforward enable
+%   loop: loop type
 % Outputs:
 %   q: mechanism coordinates [6x1]
 %   dq: mechanism coordinates derivative [6x1]
@@ -50,11 +51,12 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
     
     lambdabar = 10*lambda; %quick convergence for coupling equations
     
+    len_t = length(t);
+    len_u = 2;
+    
     % Feedback linearization matrices previously computed when feedforward
     % is enable
     if FF.on
-        len_t = length(t);
-        len_u = 2;
         Ma = zeros(len_u,len_u,len_t);
         Va = zeros(len_u,len_t);
         Ga = zeros(len_u,len_t);
@@ -77,17 +79,26 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
         FF.Ga = Ga;
     end
     
-    [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam,lambda, ...
-        lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF),t,x0);
-    
-    x = x';
-    q = x(1:6,:);
-    dq = x(7:12,:);
-    u = zeros(2,length(t));
-    
-    for i = 1:length(t)
-        u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam,lambda, ...
-        lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF);
+    if strcmp(loop,'CL')
+        [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam, ...
+            lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF),t,x0);
+
+        x = x';
+        q = x(1:6,:);
+        dq = x(7:12,:);
+        u = zeros(len_u,len_t);
+
+        for i = 1:length(t)
+            u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam, ...
+                lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF);
+        end
+    elseif strcmp(loop,'OL')
+        [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam, ...
+            lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'x_OL',FF),t,x0);
+        x = x';
+        q = x(1:6,:);
+        dq = x(7:12,:);
+        u = zeros(len_u,len_t);
     end
 
 end
