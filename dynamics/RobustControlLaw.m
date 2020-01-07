@@ -1,5 +1,5 @@
 function [u] = RobustControlLaw(x,ref,cord,param,lambda,Qa,Qp,sat,FF, ...
-    pos,outvar)
+    pos,sim_type)
 % Computes robust control law.
 % Inputs:
 %   x: state vector
@@ -11,7 +11,7 @@ function [u] = RobustControlLaw(x,ref,cord,param,lambda,Qa,Qp,sat,FF, ...
 %   sat: actuators' saturation
 %   FF: feedforward enable
 %   pos: time vector position
-%   outvar: output variable, 'x', 'u' or 'x_OL'
+%   sim_type: simulation type
 % Outputs:
 %   u: control signal [2x1]
 
@@ -51,11 +51,11 @@ function [u] = RobustControlLaw(x,ref,cord,param,lambda,Qa,Qp,sat,FF, ...
         Ga = C'*G;
     end
     
-    if strcmp(outvar,'x') || strcmp(outvar,'u')
+    if strcmp(sim_type,'default')
         uhinf = d2r + 2*lambda*dr+ lambda^2*r;
         u = sat*tanh((Va+Ga+Ma*(-2*lambda*dqa-lambda^2*qa+uhinf))/ ...
             sat); %control signal
-    elseif strcmp(outvar,'x_OL')
+    elseif strcmp(sim_type,'design')
 %         uhinf = d2r + 2*lambda*dr+ lambda^2*r;
 %         u = Va+Ga+Ma*(-2*lambda*dqa-lambda^2*qa+uhinf); %control signal
 %         u = Va+Ga+Ma*(-2*lambda*dqa-lambda^2*qa)+r; %control signal

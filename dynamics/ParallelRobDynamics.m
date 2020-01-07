@@ -1,5 +1,5 @@
 function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
-    ref,cord,T,sat,FF,loop)
+    ref,cord,T,sat,FF,sim_type)
 % Computes parallel mechanism continuous dynamics.
 % Inputs:
 %   x0: initial state vector
@@ -12,7 +12,7 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
 %   T: sample time
 %   sat: actuators' saturation
 %   FF: feedforward enable
-%   loop: loop type
+%   sim_type: simulation type
 % Outputs:
 %   q: mechanism coordinates [6x1]
 %   dq: mechanism coordinates derivative [6x1]
@@ -79,9 +79,9 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
         FF.Ga = Ga;
     end
     
-    if strcmp(loop,'CL')
+    if strcmp(sim_type,'default')
         [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam, ...
-            lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF),t,x0);
+            lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF,sim_type),t,x0);
 
         x = x';
         q = x(1:6,:);
@@ -90,15 +90,21 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
 
         for i = 1:len_t
             u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam, ...
-                lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF);
+                lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF,sim_type);
         end
-    elseif strcmp(loop,'OL')
+    elseif strcmp(sim_type,'design')
         [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam, ...
-            lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'x_OL',FF),t,x0);
+            lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF,sim_type),t,x0);
+
         x = x';
         q = x(1:6,:);
         dq = x(7:12,:);
         u = zeros(len_u,len_t);
+
+        for i = 1:len_t
+            u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam, ...
+                lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF,sim_type);
+        end
     end
 
 end

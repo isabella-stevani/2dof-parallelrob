@@ -1,5 +1,5 @@
 function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,lambdabar, ...
-    ref,Qa,Qp,cord,T,sat,outvar,FF)
+    ref,Qa,Qp,cord,T,sat,outvar,FF,sim_type)
 % Parallel mechanism dynamic model for ODE method.
 % Inputs:
 %   t: time
@@ -13,7 +13,9 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,lambdabar, ...
 %   cord: actuated coordinates
 %   T: sample time
 %   sat: actuators' saturation
-%   outvar: output variable, 'x', 'u' or 'x_OL'
+%   outvar: output variable, 'x' or 'u'
+%   FF: feedforward enable
+%   sim_type: simulation type
 % Outputs:
 %   out could be
 %   dx: state vector derivative [12x1]
@@ -31,7 +33,8 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,lambdabar, ...
     % Dynamics' matrices
     [Munc,Vunc,Gunc] = ParallelRobDynMatrix(q,dq,uncparam);
     % Robust control law
-    u = RobustControlLaw(x,ref,cord,param,lambda,Qa,Qp,sat,FF,pos,outvar);
+    u = RobustControlLaw(x,ref,cord,param,lambda,Qa,Qp,sat,FF,pos, ...
+        sim_type);
     % Dynamic simulation model
     Z = [Cunc'*Munc;Aunc];
     z = [u+Cunc'*(-Vunc-Gunc);
@@ -39,7 +42,7 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,lambdabar, ...
     d2q = Z\z;
     dx = [dq;d2q];
     
-    if strcmp(outvar,'x') || strcmp(outvar,'x_OL')
+    if strcmp(outvar,'x')
         out = dx;
     elseif strcmp(outvar,'u')
         out = u;
