@@ -5,84 +5,30 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Aug 2018; Last revision: 06-Dec-2019
+% Creation: Aug 2018; Last revision: 07-Jan-2020
 
 close all; clear; clc;
 
 %------------- BEGIN OF CODE --------------
 
-%% Folder paths
+%% Parameters
 
-% Determine where your m-file's folder is
-folder = fileparts(which(mfilename)); 
-% Add that folder plus all subfolders to the path
-addpath(genpath(folder));
-
-%% Parallel model parameters
-
-T = 0.001; %sample time [s]
-
-%%% Nominal parameters (SI units)
-g = 9.8;
-m1 = 0.1;
-m2 = 0.1;
-l0 = 0.05;
-l1 = 0.12;
-l2 = 0.16;
-lg1 = 0.06;
-lg2 = 0.068;
-Jz1 = 2e-04;
-Jz2 = 7e-04;
-
-param.g = g;
-param.m1 = m1;
-param.m2 = m2;
-param.l0 = l0;
-param.l1 = l1;
-param.l2 = l2;
-param.lg1 = lg1;
-param.lg2 = lg2;
-param.Jz1 = Jz1;
-param.Jz2 = Jz2;
-
-%%% Nominal linearized model
-lambda = 40; %FL parameter [rad/s]
-s = tf('s');
-
-% Continuous model
-G = 1/(s+lambda)^2;
+set_env; %script to set work environment
 
 %% Simulation parameters
 
 tsim = 1; %simulation time [s]
 t = 0:T:tsim; %simulation time vector
-sat = 2; %actuators' saturation
 
-%%% Initial conditions
-r_xy = [0.07; 0.17]; %end-effector initial condition
-rad72 = 72*pi/180;
-q12_0 = [rad72; rad72; rad72; rad72]; %joint angles initial conditions
-inputfunc = @ConstantInput; %constant reference signal for initial conditions
+% Reference signal
 
-% Adjusting initial conditions through kinematics
-q = ParallelRobKinematics(r_xy,q12_0,param,inputfunc,lambda);
-dq = zeros(6,1);
-x0 = [q;dq]; %initial state vector
-
-%%% Reference signal
-% Parameters
-cord = 'theta'; %reference considering end-effector coordinates
-% cord = 'xy'; %reference considering active joints coordinates
-inputfunc = @RoundInput; %round reference signal
-% inputfunc = @ConstantInput; %constant reference signal
-
-% Signal computation
 ref = ParallelRobDynRef(x0,t,param,inputfunc,lambda);
 % save('ref_theta.mat','ref');
 % load('ref_theta');
 
 %% Nominal simulation
 
+x0 = x0+x0_tol;
 loop = 'CL'; %closed-loop simulation
 
 % Without feedforward

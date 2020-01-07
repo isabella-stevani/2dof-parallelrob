@@ -88,7 +88,7 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
         dq = x(7:12,:);
         u = zeros(len_u,len_t);
 
-        for i = 1:length(t)
+        for i = 1:len_t
             u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam, ...
                 lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF);
         end
