@@ -1,4 +1,4 @@
-function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
+function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
     ref,cord,T,sat,FF,sim_type)
 % Computes parallel mechanism continuous dynamics.
 % Inputs:
@@ -6,7 +6,7 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
 %   t: time vector
 %   param: nominal parameters for control law
 %   uncparam: model real parameters
-%   lambda: FL control parameter
+%   FL: FL control parameters
 %   ref: reference signal
 %   cord: actuated coordinates
 %   T: sample time
@@ -49,7 +49,7 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
                0 0 0 1];
     end
     
-    lambdabar = 10*lambda; %quick convergence for coupling equations
+    lambdabar = 10*min(abs(FL.p1),abs(FL.p2)); %quick convergence for coupling equations
     
     len_t = length(t);
     len_u = 2;
@@ -81,7 +81,7 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
     
     if strcmp(sim_type,'default')
         [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam, ...
-            lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF,sim_type),t,x0);
+            FL,lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF,sim_type),t,x0);
 
         x = x';
         q = x(1:6,:);
@@ -90,11 +90,11 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
 
         for i = 1:len_t
             u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam, ...
-                lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF,sim_type);
+                FL,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF,sim_type);
         end
     elseif strcmp(sim_type,'design')
         [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam, ...
-            lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF,sim_type),t,x0);
+            FL,lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF,sim_type),t,x0);
 
         x = x';
         q = x(1:6,:);
@@ -103,7 +103,7 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
 
         for i = 1:len_t
             u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam, ...
-                lambda,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF,sim_type);
+                FL,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF,sim_type);
         end
     end
 

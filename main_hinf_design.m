@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Dec 2019; Last revision: 07-Jan-2020
+% Creation: Dec 2019; Last revision: 09-Jan-2020
 
 close all; clear; clc;
 
@@ -29,8 +29,10 @@ ref = ParallelRobDynRef(x0,t,param,inputfunc,lambda);
 x0 = x0+x0_tol; %initial conditions tolerance
 sim_type = 'design'; %control design simulation
 FF.on = false; %without feed-forward
+FL.p1 = -40;
+FL.p2 = -40;
 
-[q,~,~] = ParallelRobDynamics(x0,t,param,param,lambda, ...
+[q,~,~] = ParallelRobDynamics(x0,t,param,param,FL, ...
     ref,cord,T,sat,FF,sim_type);
 
 % Transfer function estimation
@@ -68,6 +70,8 @@ out_a = out_a';
 
 x0_a = Qa'*x0(1:6); %actuated initial conditions
 
+e_a = in_a-out_a;
+
 % data = iddata(out_a,in_a,T);
 data1 = iddata(out_a(:,1),in_a(:,1),T); %first actuated variable data
 data2 = iddata(out_a(:,2),in_a(:,2),T); %second actuated variable data
@@ -89,7 +93,9 @@ G_est_nom_ss = ss(G_est_nom);
 
 %%% Continuous linearized model
 s = tf('s');
-G = ((lambda^2)/(s+lambda)^2)*eye(2);
+K1 = -(FL.p1+FL.p2);
+K2 = FL.p1*FL.p2;
+G = K2/(s^2+K1*s+K2)*eye(2);
 G_ss = ss(G);
 [y,~,~] = lsim(G_ss,in_a,t,[x0_a(1);x0(9);x0_a(2);x0(11)]);
 
@@ -117,6 +123,15 @@ plot(t,out_a(:,2),'-r');
 plot(t,in_a(:,2),'--k');
 legend('TF','TF est','model','ref');
 hold off;
+
+figure;
+subplot(2,1,1);
+plot(t,e_a(:,1));
+subplot(2,1,2);
+plot(t,e_a(:,2));
+
+[FL.p1 FL.p2]
+max(max(abs(e_a(50:end,:))))
 
 % figure; hold on;
 % plot(ref(1,:),ref(2,:),'--k');
@@ -150,7 +165,7 @@ uncparam_pos.lg2 = round(lg2*(1+tolI),p);
 uncparam_pos.Jz1 = round(Jz1*(1+tolI),p);
 uncparam_pos.Jz2 = round(Jz2*(1+tolI),p);
 
-[q_unc_pos,~,~] = ParallelRobDynamics(x0,t,param,uncparam_pos,lambda, ...
+[q_unc_pos,~,~] = ParallelRobDynamics(x0,t,param,uncparam_pos,FL, ...
     ref,cord,T,sat,FF,sim_type);
 
 in = ref(1:6,:);
@@ -207,7 +222,7 @@ uncparam_neg.lg2 = round(lg2*(1-tolI),p);
 uncparam_neg.Jz1 = round(Jz1*(1-tolI),p);
 uncparam_neg.Jz2 = round(Jz2*(1-tolI),p);
 
-[q_unc_neg,~,~] = ParallelRobDynamics(x0,t,param,uncparam_neg,lambda, ...
+[q_unc_neg,~,~] = ParallelRobDynamics(x0,t,param,uncparam_neg,FL, ...
     ref,cord,T,sat,FF,sim_type);
 
 in = ref(1:6,:);

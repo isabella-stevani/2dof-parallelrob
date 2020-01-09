@@ -7,7 +7,7 @@
 % E-mail address: isabella.stevani@usp.br
 % Creation: Jan 2020; Last revision: 07-Jan-2020
 
-close all; clear; clc;
+% close all; clear; clc;
 
 %------------- BEGIN OF CODE --------------
 

@@ -1,4 +1,4 @@
-function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,lambdabar, ...
+function [out] = ParallelRobDynEDO(t,x,param,uncparam,FL,lambdabar, ...
     ref,Qa,Qp,cord,T,sat,outvar,FF,sim_type)
 % Parallel mechanism dynamic model for ODE method.
 % Inputs:
@@ -6,7 +6,7 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,lambdabar, ...
 %   x: state vector
 %   param: model nominal parameters
 %   uncparam: model real parameters
-%   lambda: FL control parameter
+%   FL: FL control parameters
 %   lambdabar: FL model convergence parameter
 %   ref: reference signal
 %   Qa,Qp: actuated and passive coordinates
@@ -33,7 +33,7 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,lambda,lambdabar, ...
     % Dynamics' matrices
     [Munc,Vunc,Gunc] = ParallelRobDynMatrix(q,dq,uncparam);
     % Robust control law
-    u = RobustControlLaw(x,ref,cord,param,lambda,Qa,Qp,sat,FF,pos, ...
+    u = RobustControlLaw(x,ref,cord,param,FL,Qa,Qp,sat,FF,pos, ...
         sim_type);
     % Dynamic simulation model
     Z = [Cunc'*Munc;Aunc];
