@@ -1,5 +1,5 @@
-function [out] = ParallelRobDynEDO(t,x,param,uncparam,FL,lambdabar, ...
-    ref,Qa,Qp,cord,T,sat,outvar,FF,sim_type)
+function [out] = ParallelRobDynEDO(t,x,param,uncparam,FL,ref,Qa,Qp, ...
+    cord,T,sat,outvar,FF,sim_type)
 % Parallel mechanism dynamic model for ODE method.
 % Inputs:
 %   t: time
@@ -7,7 +7,6 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,FL,lambdabar, ...
 %   param: model nominal parameters
 %   uncparam: model real parameters
 %   FL: FL control parameters
-%   lambdabar: FL model convergence parameter
 %   ref: reference signal
 %   Qa,Qp: actuated and passive coordinates
 %   cord: actuated coordinates
@@ -38,7 +37,7 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,FL,lambdabar, ...
     % Dynamic simulation model
     Z = [Cunc'*Munc;Aunc];
     z = [u+Cunc'*(-Vunc-Gunc);
-    -dAunc*dq-2*lambdabar*Aunc*dq-lambdabar^2*qbarunc];
+    -dAunc*dq-2*FL.lambdabar*Aunc*dq-FL.lambdabar^2*qbarunc];
     d2q = Z\z;
     dx = [dq;d2q];
     

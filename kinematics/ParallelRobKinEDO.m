@@ -1,11 +1,11 @@
-function [dx] = ParallelRobKinEDO(t,x,param,inputfunc,lambda)
+function [dx] = ParallelRobKinEDO(t,x,param,inputfunc,FL)
 % Parallel mechanism kinematic model for Runge-Kutta method.
 % Inputs:
 %   t: time vector
 %   x: state vector
 %   param: model parameters
 %   inputfunc: type of reference signal (usually constant)
-%   lambda: FL control parameter
+%   FL: FL control parameters
 %   cord: actuated coordinates
 % Outputs:
 %   dx: state vector derivative [12x1]
@@ -39,10 +39,9 @@ function [dx] = ParallelRobKinEDO(t,x,param,inputfunc,lambda)
     [qbar,A,dA,~,~] = ParallelRobKinMatrix(q,dq,param,Qa,Qp);
     
     % Kinematic simulation model
-    lambdabar = 10*lambda;
     Z = [Qa';A];
-    z = [d2r + 2*lambda*de + lambda^2*e;
-    -dA*dq-2*lambdabar*A*dq-lambdabar^2*qbar];
+    z = [d2r + FL.K1*de + FL.K2*e;
+    -dA*dq-2*FL.lambdabar*A*dq-FL.lambdabar^2*qbar];
     d2q = Z\z;
     
     dx = [dq;d2q];

@@ -49,8 +49,6 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
                0 0 0 1];
     end
     
-    lambdabar = 10*min(abs(FL.p1),abs(FL.p2)); %quick convergence for coupling equations
-    
     len_t = length(t);
     len_u = 2;
     
@@ -81,7 +79,7 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
     
     if strcmp(sim_type,'default')
         [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam, ...
-            FL,lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF,sim_type),t,x0);
+            FL,ref,Qa,Qp,cord,T,sat,'x',FF,sim_type),t,x0);
 
         x = x';
         q = x(1:6,:);
@@ -90,11 +88,11 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
 
         for i = 1:len_t
             u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam, ...
-                FL,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF,sim_type);
+                FL,ref,Qa,Qp,cord,T,sat,'u',FF,sim_type);
         end
     elseif strcmp(sim_type,'design')
         [~,x] = ode45(@(t,x) ParallelRobDynEDO(t,x,param,uncparam, ...
-            FL,lambdabar,ref,Qa,Qp,cord,T,sat,'x',FF,sim_type),t,x0);
+            FL,ref,Qa,Qp,cord,T,sat,'x',FF,sim_type),t,x0);
 
         x = x';
         q = x(1:6,:);
@@ -103,7 +101,7 @@ function [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
 
         for i = 1:len_t
             u(:,i) = ParallelRobDynEDO(t(i),x(:,i),param,uncparam, ...
-                FL,lambdabar,ref,Qa,Qp,cord,T,sat,'u',FF,sim_type);
+                FL,ref,Qa,Qp,cord,T,sat,'u',FF,sim_type);
         end
     end
 

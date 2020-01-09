@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Aug 2018; Last revision: 07-Jan-2020
+% Creation: Aug 2018; Last revision: 09-Jan-2020
 
 close all; clear; clc;
 
@@ -22,7 +22,7 @@ t = 0:T:tsim; %simulation time vector
 
 % Reference signal
 
-ref = ParallelRobDynRef(x0,t,param,inputfunc,lambda);
+ref = ParallelRobDynRef(x0,t,param,inputfunc,FL);
 % save('ref_theta.mat','ref');
 % load('ref_theta');
 
@@ -34,13 +34,13 @@ sim_type = 'default'; %default simulation
 % Without feedforward
 %%% Dynamics
 FF.on = false;
-[q,dq,u] = ParallelRobDynamics(x0,t,param,param,lambda,ref,cord,T, ...
+[q,dq,u] = ParallelRobDynamics(x0,t,param,param,FL,ref,cord,T, ...
     sat,FF,sim_type);
 
 % With feedforward
 %%% Dynamics
 FF.on = true;
-[q_FF,dq_FF,u_FF] = ParallelRobDynamics(x0,t,param,param,lambda, ...
+[q_FF,dq_FF,u_FF] = ParallelRobDynamics(x0,t,param,param,FL, ...
     ref,cord,T,sat,FF,sim_type);
 
 % States
@@ -160,13 +160,13 @@ for i = 1:n
     % Without feedforward
     %%% Dynamics
     FF.on = false;
-    [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,lambda,ref,cord, ...
+    [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,FL,ref,cord, ...
         T,sat,FF,sim_type);
 
     % With feedforward
     %%% Dynamics
     FF.on = true;
-    [q_FF,dq_FF,u_FF] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
+    [q_FF,dq_FF,u_FF] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
         ref,cord,T,sat,FF,sim_type);
     
     % States

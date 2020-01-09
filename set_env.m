@@ -42,7 +42,13 @@ param.lg2 = lg2;
 param.Jz1 = Jz1;
 param.Jz2 = Jz2;
 
-lambda = 40; %FL parameter [rad/s]
+% Feedback linearization
+FL.p1 = -40;
+FL.p2 = -40;
+FL.K1 = -(FL.p1+FL.p2);
+FL.K2 = FL.p1*FL.p2;
+FL.lambdabar = 10*max(abs(FL.p1),abs(FL.p2)); %quick convergence for coupling equations
+
 
 %% Simulation parameters
 
@@ -58,7 +64,7 @@ q12_0 = [rad72; rad72; rad72; rad72]; %joint angles initial conditions
 inputfunc = @ConstantInput; %constant reference signal for initial conditions
 
 %%% Adjusting initial conditions through kinematics
-q = ParallelRobKinematics(r_xy,q12_0,param,inputfunc,lambda);
+q = ParallelRobKinematics(r_xy,q12_0,param,inputfunc,FL);
 dq = zeros(6,1);
 x0 = [q;dq]; %initial state vector
 x0_tol = [0.1;0.1;0.2;0.2;0.2;0.2;0;0;0;0;0;0];

@@ -1,11 +1,11 @@
-function [q] = ParallelRobKinematics(r,q12_0,param,inputfunc,lambda)
+function [q] = ParallelRobKinematics(r,q12_0,param,inputfunc,FL)
 % Computes parallel mechanism kinematics.
 % Inputs:
 %   r: end-effector reference coordinates
 %   q12_0: joints initial conditions
 %   param: model parameters
 %   inputfunc: type of reference signal (usually constant)
-%   lambda: FL control parameter
+%   FL: FL control parameters
 % Outputs:
 %   q: mechanism coordinates [6x1]
 
@@ -14,7 +14,7 @@ function [q] = ParallelRobKinematics(r,q12_0,param,inputfunc,lambda)
     x0 = [r;q12_0;zeros(6,1)]; %initial state vector
     
     %parallel mechanism kinematic model
-    [~,x] = ode45(@(t,x) ParallelRobKinEDO(t,x,param,inputfunc,lambda),t,x0);
+    [~,x] = ode45(@(t,x) ParallelRobKinEDO(t,x,param,inputfunc,FL),t,x0);
 
     x = x';
     q0 = r;
