@@ -15,17 +15,17 @@ close all; clear; clc;
 
 set_env; %script to set work environment
 
-%% Nominal simulation
+%% Nominal case
 
-tsim = 1; %simulation time [s]
+% Simulation
+
+tsim = 5; %simulation time [s]
 t = 0:T:tsim; %simulation time vector
 
-% Reference signal
-
+%%% Reference signal
 ref = ParallelRobDynRef(x0,t,param,inputfunc,lambda);
 
-% Dynamics
-
+%%% Dynamics
 x0 = x0+x0_tol; %initial conditions tolerance
 sim_type = 'design'; %control design simulation
 FF.on = false; %without feed-forward
@@ -35,7 +35,11 @@ FF.on = false; %without feed-forward
 
 % Transfer function estimation
 
-%%% Data
+%%% Raw data
+in = ref(1:6,:);
+out = q;
+
+%%% Actuated data
 if strcmp(cord,'xy')
     Qa = [1 0;
         0 1;
@@ -52,9 +56,6 @@ elseif strcmp(cord,'theta')
         0 0];
 end
 
-in = ref(1:6,:);
-out = q;
-
 in_a = zeros(2,length(t));
 out_a = zeros(2,length(t));
 
@@ -64,33 +65,35 @@ for i = 1:length(t)
 end
 in_a = in_a';
 out_a = out_a';
-x0_a = Qa'*x0(1:6);
-data = iddata(out_a,in_a,T);
-data1 = iddata(out_a(:,1),in_a(:,1),T);
-data2 = iddata(out_a(:,2),in_a(:,2),T);
+
+x0_a = Qa'*x0(1:6); %actuated initial conditions
+
+% data = iddata(out_a,in_a,T);
+data1 = iddata(out_a(:,1),in_a(:,1),T); %first actuated variable data
+data2 = iddata(out_a(:,2),in_a(:,2),T); %second actuated variable data
 
 %%% Estimation
 % tfest_opt = tfestOptions;
 % tfest_opt.InitializeMethod = 'all';
-sys = tfest(data,2,0);
-sys1 = tfest(data1,2,0);
-sys2 = tfest(data2,2,0);
+% sys = tfest(data,2,0);
+sys1_nom = tfest(data1,2,0); %estimated TF for the first actuated variable
+sys2_nom = tfest(data2,2,0); %estimated TF for the second actuated variable
 
-%% Nominal model
+%%% Estimated TF response
+G_est_nom = [sys1_nom 0;0 sys2_nom];
+G_est_nom_ss = ss(G_est_nom);
+[y_est_nom,~,~] = lsim(G_est_nom_ss,in_a,t,[x0_a(1);x0(9);x0_a(2); ...
+    x0(11)]);
 
-% Model parameters
+% Nominal model
+
+%%% Continuous linearized model
 s = tf('s');
+G = ((lambda^2)/(s+lambda)^2)*eye(2);
+G_ss = ss(G);
+[y,~,~] = lsim(G_ss,in_a,t,[x0_a(1);x0(9);x0_a(2);x0(11)]);
 
-% Continuous linearized model
-G_OL = ((lambda^2)/(s+lambda)^2)*eye(2);
-% G_CL = feedback(G_OL,eye(2));
-G_CL = G_OL;
-G_CL_ss = ss(G_CL);
-[y,~,~] = lsim(G_CL_ss,in_a,t,[x0_a(1);x0(9);x0_a(2);x0(11)]);
-
-G_CL_est = [sys1 0;0 sys2];
-G_CL_est_ss = ss(G_CL_est);
-[y_est,~,~] = lsim(G_CL_est_ss,in_a,t,[x0_a(1);x0(9);x0_a(2);x0(11)]);
+% Plots
 
 % figure;
 % sigma(G,sys(1,1),sys(2,2));
@@ -101,7 +104,7 @@ G_CL_est_ss = ss(G_CL_est);
 
 figure; hold on;
 plot(t,y(:,1),'-b');
-plot(t,y_est(:,1),'-k');
+plot(t,y_est_nom(:,1),'-k');
 plot(t,out_a(:,1),'-r');
 plot(t,in_a(:,1),'--k');
 legend('TF','TF est','model','ref');
@@ -109,7 +112,7 @@ hold off;
 
 figure; hold on;
 plot(t,y(:,2),'-b');%%
-plot(t,y_est(:,2),'-k');
+plot(t,y_est_nom(:,2),'-k');
 plot(t,out_a(:,2),'-r');
 plot(t,in_a(:,2),'--k');
 legend('TF','TF est','model','ref');
@@ -130,26 +133,28 @@ hold off;
 
 %% Uncertain model
 
-tolI = 0.2; % 20% accurate (inertia parameters)
-toll = 0.01; % 1% accurate (bar lengths)
+tolI = 0.25; % 25% accurate (inertia parameters)
+toll = 0.05; % 5% accurate (bar lengths)
 p = 4;
 
-uncparam.g = g;
-uncparam.m1 = round(m1*(1+tolI),p);
-uncparam.m2 = round(m2*(1+tolI),p);
-uncparam.l0 = round(l0*(1+toll),p);
-uncparam.l1 = round(l1*(1+toll),p);
-uncparam.l2 = round(l2*(1+toll),p);
-uncparam.lg1 = round(lg1*(1+tolI),p);
-uncparam.lg2 = round(lg2*(1+tolI),p);
-uncparam.Jz1 = round(Jz1*(1+tolI),p);
-uncparam.Jz2 = round(Jz2*(1+tolI),p);
+% Positive tolerances
 
-[q_unc,~,~] = ParallelRobDynamics(x0,t,param,uncparam,lambda, ...
+uncparam_pos.g = g;
+uncparam_pos.m1 = round(m1*(1+tolI),p);
+uncparam_pos.m2 = round(m2*(1+tolI),p);
+uncparam_pos.l0 = round(l0*(1+toll),p);
+uncparam_pos.l1 = round(l1*(1+toll),p);
+uncparam_pos.l2 = round(l2*(1+toll),p);
+uncparam_pos.lg1 = round(lg1*(1+tolI),p);
+uncparam_pos.lg2 = round(lg2*(1+tolI),p);
+uncparam_pos.Jz1 = round(Jz1*(1+tolI),p);
+uncparam_pos.Jz2 = round(Jz2*(1+tolI),p);
+
+[q_unc_pos,~,~] = ParallelRobDynamics(x0,t,param,uncparam_pos,lambda, ...
     ref,cord,T,sat,FF,sim_type);
 
 in = ref(1:6,:);
-out = q_unc;
+out = q_unc_pos;
 
 in_a = zeros(2,length(t));
 out_a = zeros(2,length(t));
@@ -161,28 +166,21 @@ end
 in_a = in_a';
 out_a = out_a';
 x0_a = Qa'*x0(1:6);
-data = iddata(out_a,in_a,T);
+
 data1 = iddata(out_a(:,1),in_a(:,1),T);
 data2 = iddata(out_a(:,2),in_a(:,2),T);
 
-sys = tfest(data,2,0);
-sys1 = tfest(data1,2,0);
-sys2 = tfest(data2,2,0);
+sys1_unc_pos = tfest(data1,2,0);
+sys2_unc_pos = tfest(data2,2,0);
 
-G_CL_est = [sys1 0;0 sys2];
-G_CL_est_ss = ss(G_CL_est);
-[y_est,~,~] = lsim(G_CL_est_ss,in_a,t,[x0_a(1);x0(9);x0_a(2);x0(11)]);
-
-% figure;
-% sigma(G,sys(1,1),sys(2,2));
-% legend on;
-% figure;
-% sigma(G,sys1);
-% legend on;
+G_est_unc_pos = [sys1_unc_pos 0;0 sys2_unc_pos];
+G_est_unc_pos_ss = ss(G_est_unc_pos);
+[y_est_unc_pos,~,~] = lsim(G_est_unc_pos_ss,in_a,t,[x0_a(1);x0(9); ...
+    x0_a(2);x0(11)]);
 
 figure; hold on;
 plot(t,y(:,1),'-b');
-plot(t,y_est(:,1),'-k');
+plot(t,y_est_unc_pos(:,1),'-k');
 plot(t,out_a(:,1),'-r');
 plot(t,in_a(:,1),'--k');
 legend('TF','TF est','model','ref');
@@ -190,10 +188,74 @@ hold off;
 
 figure; hold on;
 plot(t,y(:,2),'-b');%%
-plot(t,y_est(:,2),'-k');
+plot(t,y_est_unc_pos(:,2),'-k');
 plot(t,out_a(:,2),'-r');
 plot(t,in_a(:,2),'--k');
 legend('TF','TF est','model','ref');
 hold off;
+
+% Negative tolerances
+
+uncparam_neg.g = g;
+uncparam_neg.m1 = round(m1*(1-tolI),p);
+uncparam_neg.m2 = round(m2*(1-tolI),p);
+uncparam_neg.l0 = round(l0*(1-toll),p);
+uncparam_neg.l1 = round(l1*(1-toll),p);
+uncparam_neg.l2 = round(l2*(1-toll),p);
+uncparam_neg.lg1 = round(lg1*(1-tolI),p);
+uncparam_neg.lg2 = round(lg2*(1-tolI),p);
+uncparam_neg.Jz1 = round(Jz1*(1-tolI),p);
+uncparam_neg.Jz2 = round(Jz2*(1-tolI),p);
+
+[q_unc_neg,~,~] = ParallelRobDynamics(x0,t,param,uncparam_neg,lambda, ...
+    ref,cord,T,sat,FF,sim_type);
+
+in = ref(1:6,:);
+out = q_unc_neg;
+
+in_a = zeros(2,length(t));
+out_a = zeros(2,length(t));
+
+for i = 1:length(t)
+    in_a(:,i) = Qa'*in(:,i);
+    out_a(:,i) = Qa'*out(:,i);
+end
+in_a = in_a';
+out_a = out_a';
+x0_a = Qa'*x0(1:6);
+
+data1 = iddata(out_a(:,1),in_a(:,1),T);
+data2 = iddata(out_a(:,2),in_a(:,2),T);
+
+sys1_unc_neg = tfest(data1,2,0);
+sys2_unc_neg = tfest(data2,2,0);
+
+G_est_unc_neg = [sys1_unc_neg 0;0 sys2_unc_neg];
+G_est_unc_neg_ss = ss(G_est_unc_neg);
+[y_est_unc_neg,~,~] = lsim(G_est_unc_neg_ss,in_a,t,[x0_a(1);x0(9); ...
+    x0_a(2);x0(11)]);
+
+figure; hold on;
+plot(t,y(:,1),'-b');
+plot(t,y_est_unc_neg(:,1),'-k');
+plot(t,out_a(:,1),'-r');
+plot(t,in_a(:,1),'--k');
+legend('TF','TF est','model','ref');
+hold off;
+
+figure; hold on;
+plot(t,y(:,2),'-b');%%
+plot(t,y_est_unc_neg(:,2),'-k');
+plot(t,out_a(:,2),'-r');
+plot(t,in_a(:,2),'--k');
+legend('TF','TF est','model','ref');
+hold off;
+
+%% Singular values
+
+figure;
+sigma(G,G_est_unc_pos,G_est_unc_neg);
+legend('Nominal','Uncertainties with positive tolerances', ...
+    'Uncertainties with negative tolerances');
 
 %------------- END OF CODE --------------
