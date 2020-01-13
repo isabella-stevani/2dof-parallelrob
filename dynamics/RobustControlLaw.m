@@ -56,6 +56,10 @@ function [u] = RobustControlLaw(x,ref,cord,param,FL,Qa,Qp,sat,FF, ...
 %         u = sat*tanh((Va+Ga+Ma*(-FL.K1*dqa-FL.K2*qa+uhinf))/sat); %control signal
         uhinf = r-qa;
         u = sat*tanh((Va+Ga+Ma*(-FL.K1*dqa+FL.K2*uhinf))/sat); %control signal
+%         uhinf = r-qa;
+%         u = Va+Ga+Ma*(-40*dqa+(40*2*pi*1/0.07)*r); %control signal
+%         uhinf = r-qa;
+%         u = Va+Ga+Ma*(-FL.K1*dqa+FL.K2*uhinf); %control signal
     elseif strcmp(sim_type,'design')
 %         uhinf = d2r + FL.K1*dr+ FL.K2*r;
 %         u = Va+Ga+Ma*(-FL.K1*dqa-FL.K2*qa+uhinf); %control signal

@@ -136,9 +136,6 @@ saveas(gcf,'images/continuous/cntr_nomsim_error.png');
 %% Uncertain simulation
 
 n = 10; %samples
-tolI = 0.2; % 20% accurate (inertia parameters)
-toll = 0.01; % 1% accurate (bar lengths)
-p = 4;
 
 fig_x = figure;
 fig_u = figure;
@@ -213,6 +210,8 @@ xlab = 'Time [s]';
 tlab = 'States';
 figure(fig_x); hold off;
 for i = 1:6
+    subplot(3,2,i);
+    grid on;
     xl = xlabel(xlab);
     yl = ylabel(ylab{i});
     set(xl,'FontSize',16);
@@ -243,6 +242,7 @@ for i = 1:2
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
 end
+lgd = legend(leg);
 set(lgd,'FontSize',12);
 lines = findobj(gcf,'Type','Line');
 for i = 1:numel(lines)
@@ -267,6 +267,7 @@ for i = 1:2
     set(xl,'FontSize',16);
     set(yl,'FontSize',16);
 end
+lgd = legend(leg);
 set(lgd,'FontSize',12);
 lines = findobj(gcf,'Type','Line');
 for i = 1:numel(lines)
