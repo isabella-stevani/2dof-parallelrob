@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Aug 2018; Last revision: 09-Jan-2020
+% Creation: Aug 2018; Last revision: 13-Jan-2020
 
 close all; clear; clc;
 
@@ -17,7 +17,7 @@ set_env; %script to set work environment
 
 %% Simulation parameters
 
-tsim = 1; %simulation time [s]
+tsim = 3; %simulation time [s]
 t = 0:T:tsim; %simulation time vector
 
 % Reference signal
