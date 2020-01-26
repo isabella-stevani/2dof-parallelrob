@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Dec 2019; Last revision: 09-Jan-2020
+% Creation: Dec 2019; Last revision: 23-Jan-2020
 
 close all; clear; clc;
 
@@ -19,7 +19,7 @@ set_env; %script to set work environment
 
 % Simulation
 
-tsim = 5; %simulation time [s]
+tsim = 3; %simulation time [s]
 t = 0:T:tsim; %simulation time vector
 
 %%% Reference signal
@@ -146,20 +146,24 @@ hold off;
 
 %% Uncertain model
 
-% Positive tolerances
+FF.on = true;
 
-uncparam_pos.g = g;
-uncparam_pos.m1 = round(m1*(1+tolI),p);
-uncparam_pos.m2 = round(m2*(1+tolI),p);
-uncparam_pos.l0 = round(l0*(1+toll),p);
-uncparam_pos.l1 = round(l1*(1+toll),p);
-uncparam_pos.l2 = round(l2*(1+toll),p);
-uncparam_pos.lg1 = round(lg1*(1+tolI),p);
-uncparam_pos.lg2 = round(lg2*(1+tolI),p);
-uncparam_pos.Jz1 = round(Jz1*(1+tolI),p);
-uncparam_pos.Jz2 = round(Jz2*(1+tolI),p);
+% Tolerances boundaries
 
-[q_unc_pos,~,~] = ParallelRobDynamics(x0,t,param,uncparam_pos,FL, ...
+%%% Positive
+
+uncparam.g = g;
+uncparam.m1 = round(m1*(1+tolI),p);
+uncparam.m2 = round(m2*(1+tolI),p);
+uncparam.l0 = round(l0*(1+toll),p);
+uncparam.l1 = round(l1*(1+toll),p);
+uncparam.l2 = round(l2*(1+toll),p);
+uncparam.lg1 = round(lg1*(1+tolI),p);
+uncparam.lg2 = round(lg2*(1+tolI),p);
+uncparam.Jz1 = round(Jz1*(1+tolI),p);
+uncparam.Jz2 = round(Jz2*(1+tolI),p);
+
+[q_unc_pos,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
     ref,cord,T,sat,FF,sim_type);
 
 in = ref(1:6,:);
@@ -205,20 +209,19 @@ legend('TF','TF est','model','ref');
 % legend('TF est','model','ref');
 hold off;
 
-% Negative tolerances
+%%% Negative
 
-uncparam_neg.g = g;
-uncparam_neg.m1 = round(m1*(1-tolI),p);
-uncparam_neg.m2 = round(m2*(1-tolI),p);
-uncparam_neg.l0 = round(l0*(1-toll),p);
-uncparam_neg.l1 = round(l1*(1-toll),p);
-uncparam_neg.l2 = round(l2*(1-toll),p);
-uncparam_neg.lg1 = round(lg1*(1-tolI),p);
-uncparam_neg.lg2 = round(lg2*(1-tolI),p);
-uncparam_neg.Jz1 = round(Jz1*(1-tolI),p);
-uncparam_neg.Jz2 = round(Jz2*(1-tolI),p);
+uncparam.m1 = round(m1*(1-tolI),p);
+uncparam.m2 = round(m2*(1-tolI),p);
+uncparam.l0 = round(l0*(1-toll),p);
+uncparam.l1 = round(l1*(1-toll),p);
+uncparam.l2 = round(l2*(1-toll),p);
+uncparam.lg1 = round(lg1*(1-tolI),p);
+uncparam.lg2 = round(lg2*(1-tolI),p);
+uncparam.Jz1 = round(Jz1*(1-tolI),p);
+uncparam.Jz2 = round(Jz2*(1-tolI),p);
 
-[q_unc_neg,~,~] = ParallelRobDynamics(x0,t,param,uncparam_neg,FL, ...
+[q_unc_neg,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
     ref,cord,T,sat,FF,sim_type);
 
 in = ref(1:6,:);
@@ -264,6 +267,56 @@ legend('TF','TF est','model','ref');
 % legend('TF est','model','ref');
 hold off;
 
+% Samples between boundaries
+
+%%% LHS
+ns = 30; %samples
+np = 9; %parameters
+tol_LHS = lhsdesign(ns,np);
+
+fig_sv = figure; hold on;
+for i = 1:ns
+    uncparam.m1 = round(m1*(1+tolI*(-1+tol_LHS(i,1)*2)),p);
+    uncparam.m2 = round(m2*(1+tolI*(-1+tol_LHS(i,2)*2)),p);
+    uncparam.l0 = round(l0*(1+toll*(-1+tol_LHS(i,3)*2)),p);
+    uncparam.l1 = round(l1*(1+toll*(-1+tol_LHS(i,4)*2)),p);
+    uncparam.l2 = round(l2*(1+toll*(-1+tol_LHS(i,5)*2)),p);
+    uncparam.lg1 = round(lg1*(1+tolI*(-1+tol_LHS(i,6)*2)),p);
+    uncparam.lg2 = round(lg2*(1+tolI*(-1+tol_LHS(i,7)*2)),p);
+    uncparam.Jz1 = round(Jz1*(1+tolI*(-1+tol_LHS(i,8)*2)),p);
+    uncparam.Jz2 = round(Jz2*(1+tolI*(-1+tol_LHS(i,9)*2)),p);
+    [q_unc,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL,ref,cord, ...
+        T,sat,FF,sim_type);
+                                  
+    in = ref(1:6,:);
+    out = q_unc;
+
+    in_a = zeros(2,length(t));
+    out_a = zeros(2,length(t));
+
+    for i = 1:length(t)
+        in_a(:,i) = Qa'*in(:,i);
+        out_a(:,i) = Qa'*out(:,i);
+    end
+    in_a = in_a';
+    out_a = out_a';
+    x0_a = Qa'*x0(1:6);
+
+    data1 = iddata(out_a(:,1),in_a(:,1),T);
+    data2 = iddata(out_a(:,2),in_a(:,2),T);
+
+    sys1_unc = tfest(data1,2,0);
+    sys2_unc = tfest(data2,2,0);
+
+    G_est_unc = [sys1_unc 0;0 sys2_unc];
+    G_est_unc_ss = ss(G_est_unc);
+
+    figure(fig_sv); sigma(G_est_unc,'-b');
+end
+
+figure(fig_sv);
+sigma(G,'-k',G_est_unc_pos,'-r',G_est_unc_neg,'-r');
+hold off;
 %% Singular values
 
 figure;
