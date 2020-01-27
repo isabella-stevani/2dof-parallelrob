@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Dec 2019; Last revision: 23-Jan-2020
+% Creation: Dec 2019; Last revision: 26-Jan-2020
 
 close all; clear; clc;
 
@@ -20,7 +20,9 @@ set_env; %script to set work environment
 % Simulation
 
 tsim = 3; %simulation time [s]
-t = 0:T:tsim; %simulation time vector
+t = 0:T:tsim-T; %simulation time vector
+len_t = length(t);
+f = (1/T)*(0:(len_t/2))/len_t; %simulation frequency vector
 
 %%% Reference signal
 ref = ParallelRobDynRef(x0,t,param,inputfunc,FL);
@@ -74,18 +76,46 @@ e_a = in_a-out_a;
 data1 = iddata(out_a(:,1),in_a(:,1),T); %first actuated variable data
 data2 = iddata(out_a(:,2),in_a(:,2),T); %second actuated variable data
 
-%%% Estimation
+%%% TF Estimation
 % tfest_opt = tfestOptions;
 % tfest_opt.InitializeMethod = 'all';
 % sys = tfest(data,2,0);
 sys1_nom = tfest(data1,2,0); %estimated TF for the first actuated variable
 sys2_nom = tfest(data2,2,0); %estimated TF for the second actuated variable
 
-%%% Estimated TF response
+%%%% Estimated TF response
 G_est_nom = [sys1_nom 0;0 sys2_nom];
 G_est_nom_ss = ss(G_est_nom);
 [y_est_nom,~,~] = lsim(G_est_nom_ss,in_a,t,[x0_a(1);x0(9);x0_a(2); ...
     x0(11)]);
+
+%%% Frequency analysis
+FFT_in_1 = fft(in_a(:,1));
+P2_in_1 = abs(FFT_in_1/len_t);
+P1_in_1 = P2_in_1(1:len_t/2+1);
+P1_in_1(2:end-1) = 2*P1_in_1(2:end-1);
+FFT_out_1 = fft(out_a(:,1));
+P2_out_1 = abs(FFT_out_1/len_t);
+P1_out_1 = P2_out_1(1:len_t/2+1);
+P1_out_1(2:end-1) = 2*P1_out_1(2:end-1);
+
+FFT_in_2 = fft(in_a(:,2));
+P2_in_2 = abs(FFT_in_2/len_t);
+P1_in_2 = P2_in_2(1:len_t/2+1);
+P1_in_2(2:end-1) = 2*P1_in_2(2:end-1);
+FFT_out_2 = fft(out_a(:,2));
+P2_out_2 = abs(FFT_out_2/len_t);
+P1_out_2 = P2_out_2(1:len_t/2+1);
+P1_out_2(2:end-1) = 2*P1_out_2(2:end-1);
+
+figure;
+subplot(2,1,1);
+plot(f,P1_in_1,'--k',f,P1_out_1,'-k');
+axis([0 50 -Inf Inf]);
+subplot(2,1,2);
+plot(f,P1_in_2,'--k',f,P1_out_2,'-k');
+legend('Reference','Output');
+axis([0 50 -Inf Inf]);
 
 % Nominal model
 
@@ -104,37 +134,37 @@ G_ss = ss(G);
 % sigma(G,sys1);
 % legend on;
 
-figure; hold on;
-% plot(t,y(:,1),'-b');
-plot(t,y_est_nom(:,1),'-k');
-plot(t,out_a(:,1),'-r');
-plot(t,in_a(:,1),'--k');
-% legend('TF','TF est','model','ref');
-legend('TF est','model','ref');
-hold off;
-
-figure; hold on;
-% plot(t,y(:,2),'-b');
-plot(t,y_est_nom(:,2),'-k');
-plot(t,out_a(:,2),'-r');
-plot(t,in_a(:,2),'--k');
-% legend('TF','TF est','model','ref');
-legend('TF est','model','ref');
-hold off;
-
-figure;
-subplot(2,1,1);
-plot(t,e_a(:,1));
-subplot(2,1,2);
-plot(t,e_a(:,2));
+% figure; hold on;
+% % plot(t,y(:,1),'-b');
+% plot(t,y_est_nom(:,1),'-k');
+% plot(t,out_a(:,1),'-r');
+% plot(t,in_a(:,1),'--k');
+% % legend('TF','TF est','model','ref');
+% legend('TF est','model','ref');
+% hold off;
+% 
+% figure; hold on;
+% % plot(t,y(:,2),'-b');
+% plot(t,y_est_nom(:,2),'-k');
+% plot(t,out_a(:,2),'-r');
+% plot(t,in_a(:,2),'--k');
+% % legend('TF','TF est','model','ref');
+% legend('TF est','model','ref');
+% hold off;
+% 
+% figure;
+% subplot(2,1,1);
+% plot(t,e_a(:,1));
+% subplot(2,1,2);
+% plot(t,e_a(:,2));
 
 % [FL.p1 FL.p2]
 % max(max(abs(e_a(50:end,:))))
 
-figure; hold on;
-plot(ref(1,:),ref(2,:),'--k');
-plot(out(1,:),out(2,:),'-r');
-hold off;
+% figure; hold on;
+% plot(ref(1,:),ref(2,:),'--k');
+% plot(out(1,:),out(2,:),'-r');
+% hold off;
 % 
 % e1 = ref(1,:)-out(1,:);
 % e2 = ref(2,:)-out(2,:);
@@ -148,7 +178,7 @@ hold off;
 
 FF.on = true;
 
-% Tolerances boundaries
+% Tolerance boundaries
 
 %%% Positive
 
@@ -166,6 +196,7 @@ uncparam.Jz2 = round(Jz2*(1+tolI),p);
 [q_unc_pos,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
     ref,cord,T,sat,FF,sim_type);
 
+%%%% TF estimation
 in = ref(1:6,:);
 out = q_unc_pos;
 
@@ -191,23 +222,34 @@ G_est_unc_pos_ss = ss(G_est_unc_pos);
 [y_est_unc_pos,~,~] = lsim(G_est_unc_pos_ss,in_a,t,[x0_a(1);x0(9); ...
     x0_a(2);x0(11)]);
 
-figure; hold on;
-plot(t,y(:,1),'-b');
-plot(t,y_est_unc_pos(:,1),'-k');
-plot(t,out_a(:,1),'-r');
-plot(t,in_a(:,1),'--k');
-legend('TF','TF est','model','ref');
-% legend('TF est','model','ref');
-hold off;
+%%% Frequency analysis
+FFT_out_1_unc_pos = fft(out_a(:,1));
+P2_out_1_unc_pos = abs(FFT_out_1_unc_pos/len_t);
+P1_out_1_unc_pos = P2_out_1_unc_pos(1:len_t/2+1);
+P1_out_1_unc_pos(2:end-1) = 2*P1_out_1_unc_pos(2:end-1);
 
-figure; hold on;
-plot(t,y(:,2),'-b');
-plot(t,y_est_unc_pos(:,2),'-k');
-plot(t,out_a(:,2),'-r');
-plot(t,in_a(:,2),'--k');
-legend('TF','TF est','model','ref');
-% legend('TF est','model','ref');
-hold off;
+FFT_out_2_unc_pos = fft(out_a(:,2));
+P2_out_2_unc_pos = abs(FFT_out_2_unc_pos/len_t);
+P1_out_2_unc_pos = P2_out_2_unc_pos(1:len_t/2+1);
+P1_out_2_unc_pos(2:end-1) = 2*P1_out_2_unc_pos(2:end-1);
+
+% figure; hold on;
+% plot(t,y(:,1),'-b');
+% plot(t,y_est_unc_pos(:,1),'-k');
+% plot(t,out_a(:,1),'-r');
+% plot(t,in_a(:,1),'--k');
+% legend('TF','TF est','model','ref');
+% % legend('TF est','model','ref');
+% hold off;
+% 
+% figure; hold on;
+% plot(t,y(:,2),'-b');
+% plot(t,y_est_unc_pos(:,2),'-k');
+% plot(t,out_a(:,2),'-r');
+% plot(t,in_a(:,2),'--k');
+% legend('TF','TF est','model','ref');
+% % legend('TF est','model','ref');
+% hold off;
 
 %%% Negative
 
@@ -224,6 +266,7 @@ uncparam.Jz2 = round(Jz2*(1-tolI),p);
 [q_unc_neg,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
     ref,cord,T,sat,FF,sim_type);
 
+%%%% TF estimation
 in = ref(1:6,:);
 out = q_unc_neg;
 
@@ -249,23 +292,34 @@ G_est_unc_neg_ss = ss(G_est_unc_neg);
 [y_est_unc_neg,~,~] = lsim(G_est_unc_neg_ss,in_a,t,[x0_a(1);x0(9); ...
     x0_a(2);x0(11)]);
 
-figure; hold on;
-plot(t,y(:,1),'-b');
-plot(t,y_est_unc_neg(:,1),'-k');
-plot(t,out_a(:,1),'-r');
-plot(t,in_a(:,1),'--k');
-legend('TF','TF est','model','ref');
-% legend('TF est','model','ref');
-hold off;
+%%% Frequency analysis
+FFT_out_1_unc_neg = fft(out_a(:,1));
+P2_out_1_unc_neg = abs(FFT_out_1_unc_neg/len_t);
+P1_out_1_unc_neg = P2_out_1_unc_neg(1:len_t/2+1);
+P1_out_1_unc_neg(2:end-1) = 2*P1_out_1_unc_neg(2:end-1);
 
-figure; hold on;
-plot(t,y(:,2),'-b');
-plot(t,y_est_unc_neg(:,2),'-k');
-plot(t,out_a(:,2),'-r');
-plot(t,in_a(:,2),'--k');
-legend('TF','TF est','model','ref');
-% legend('TF est','model','ref');
-hold off;
+FFT_out_2_unc_neg = fft(out_a(:,2));
+P2_out_2_unc_neg = abs(FFT_out_2_unc_neg/len_t);
+P1_out_2_unc_neg = P2_out_2_unc_neg(1:len_t/2+1);
+P1_out_2_unc_neg(2:end-1) = 2*P1_out_2_unc_neg(2:end-1);
+
+% figure; hold on;
+% plot(t,y(:,1),'-b');
+% plot(t,y_est_unc_neg(:,1),'-k');
+% plot(t,out_a(:,1),'-r');
+% plot(t,in_a(:,1),'--k');
+% legend('TF','TF est','model','ref');
+% % legend('TF est','model','ref');
+% hold off;
+% 
+% figure; hold on;
+% plot(t,y(:,2),'-b');
+% plot(t,y_est_unc_neg(:,2),'-k');
+% plot(t,out_a(:,2),'-r');
+% plot(t,in_a(:,2),'--k');
+% legend('TF','TF est','model','ref');
+% % legend('TF est','model','ref');
+% hold off;
 
 % Samples between boundaries
 
@@ -275,6 +329,8 @@ np = 9; %parameters
 tol_LHS = lhsdesign(ns,np);
 
 fig_sv = figure; hold on;
+fig_fft = figure; hold on;
+subplot(2,1,1); hold on; subplot(2,1,2); hold on;
 for i = 1:ns
     uncparam.m1 = round(m1*(1+tolI*(-1+tol_LHS(i,1)*2)),p);
     uncparam.m2 = round(m2*(1+tolI*(-1+tol_LHS(i,2)*2)),p);
@@ -312,16 +368,46 @@ for i = 1:ns
     G_est_unc_ss = ss(G_est_unc);
 
     figure(fig_sv); sigma(G_est_unc,'-b');
+    
+    %%% Frequency analysis
+    FFT_out_1 = fft(out_a(:,1));
+    P2_out_1 = abs(FFT_out_1/len_t);
+    P1_out_1 = P2_out_1(1:len_t/2+1);
+    P1_out_1(2:end-1) = 2*P1_out_1(2:end-1);
+
+    FFT_out_2 = fft(out_a(:,2));
+    P2_out_2 = abs(FFT_out_2/len_t);
+    P1_out_2 = P2_out_2(1:len_t/2+1);
+    P1_out_2(2:end-1) = 2*P1_out_2(2:end-1);
+
+    figure(fig_fft);
+    subplot(2,1,1);
+    plot(f,P1_out_1,'-b');
+    subplot(2,1,2);
+    plot(f,P1_out_2,'-b');
 end
 
 figure(fig_sv);
 sigma(G,'-k',G_est_unc_pos,'-r',G_est_unc_neg,'-r');
 hold off;
-%% Singular values
 
-figure;
-sigma(G,G_est_unc_pos,G_est_unc_neg);
-legend('Nominal','Uncertainties with positive tolerances', ...
-    'Uncertainties with negative tolerances');
+figure(fig_fft);
+subplot(2,1,1);
+plot(f,P1_out_1_unc_pos,'-r');
+plot(f,P1_out_1_unc_neg,'-r');
+plot(f,P1_in_1,'--k');
+axis([0 50 -Inf Inf]);
+subplot(2,1,2);
+plot(f,P1_out_2_unc_pos,'-r');
+plot(f,P1_out_2_unc_neg,'-r');
+plot(f,P1_in_2,'--k');
+axis([0 50 -Inf Inf]);
+
+% %% Singular values
+% 
+% figure;
+% sigma(G,G_est_unc_pos,G_est_unc_neg);
+% legend('Nominal','Uncertainties with positive tolerances', ...
+%     'Uncertainties with negative tolerances');
 
 %------------- END OF CODE --------------
