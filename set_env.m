@@ -69,15 +69,9 @@ q12_0 = [rad72; rad72; rad72; rad72]; %joint angles initial conditions
 inputfunc = @ConstantInput; %constant reference signal for initial conditions
 
 %%% Adjusting initial conditions through kinematics
-q = ParallelRobKinematics(r_xy,q12_0,param,inputfunc,FL);
+q = ParallelRobKinematics(r_xy,q12_0,param,inputfunc,[],FL);
 dq = zeros(6,1);
 x0 = [q;dq]; %initial state vector
 x0_tol = [0.1;0.1;0.2;0.2;0.2;0.2;0;0;0;0;0;0];
-
-% Input data
-
-%%% Parameters
-cord = 'theta'; %reference considering end-effector coordinates
-inputfunc = @RoundInput; %round reference signal
 
 %------------- END OF CODE --------------

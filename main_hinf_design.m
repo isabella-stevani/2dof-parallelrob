@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Dec 2019; Last revision: 26-Jan-2020
+% Creation: Dec 2019; Last revision: 29-Jan-2020
 
 close all; clear; clc;
 
@@ -15,17 +15,23 @@ close all; clear; clc;
 
 set_env; %script to set work environment
 
-%% Nominal case
-
-% Simulation
+% Simulation data
 
 tsim = 3; %simulation time [s]
 t = 0:T:tsim-T; %simulation time vector
 len_t = length(t);
 f = (1/T)*(0:(len_t/2))/len_t; %simulation frequency vector
+f_in = 2; %input frequency
+
+cord = 'theta'; %reference considering end-effector coordinates
+inputfunc = @RoundInput; %round reference signal
 
 %%% Reference signal
-ref = ParallelRobDynRef(x0,t,param,inputfunc,FL);
+ref = ParallelRobDynRef(x0,t,param,inputfunc,f_in,FL);
+
+%% Nominal case
+
+% Simulation
 
 %%% Dynamics
 x0 = x0+x0_tol; %initial conditions tolerance
@@ -324,7 +330,7 @@ P1_out_2_unc_neg(2:end-1) = 2*P1_out_2_unc_neg(2:end-1);
 % Samples between boundaries
 
 %%% LHS
-ns = 30; %samples
+ns = 2; %samples
 np = 9; %parameters
 tol_LHS = lhsdesign(ns,np);
 

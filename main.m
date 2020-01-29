@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Aug 2018; Last revision: 13-Jan-2020
+% Creation: Aug 2018; Last revision: 29-Jan-2020
 
 close all; clear; clc;
 
@@ -15,16 +15,19 @@ close all; clear; clc;
 
 set_env; %script to set work environment
 
-%% Simulation parameters
+% Simulation data
 
 tsim = 3; %simulation time [s]
-t = 0:T:tsim; %simulation time vector
+t = 0:T:tsim-T; %simulation time vector
+len_t = length(t);
+f = (1/T)*(0:(len_t/2))/len_t; %simulation frequency vector
+f_in = 2; %input frequency
 
-% Reference signal
+cord = 'theta'; %reference considering end-effector coordinates
+inputfunc = @RoundInput; %round reference signal
 
-ref = ParallelRobDynRef(x0,t,param,inputfunc,FL);
-% save('ref_theta.mat','ref');
-% load('ref_theta');
+%%% Reference signal
+ref = ParallelRobDynRef(x0,t,param,inputfunc,f_in,FL);
 
 x0 = x0+x0_tol; %initial conditions tolerance
 sim_type = 'default'; %default simulation
