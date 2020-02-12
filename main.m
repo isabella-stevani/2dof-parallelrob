@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Aug 2018; Last revision: 29-Jan-2020
+% Creation: Aug 2018; Last revision: 11-Feb-2020
 
 close all; clear; clc;
 
@@ -27,9 +27,9 @@ cord = 'theta'; %reference considering end-effector coordinates
 inputfunc = @RoundInput; %round reference signal
 
 %%% Reference signal
-ref = ParallelRobDynRef(x0,t,param,inputfunc,f_in,FL);
+ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in,FL);
 
-x0 = x0+x0_tol; %initial conditions tolerance
+x0 = x0_ref+x0_tol; %initial conditions tolerance
 sim_type = 'default'; %default simulation
 
 %% Nominal simulation

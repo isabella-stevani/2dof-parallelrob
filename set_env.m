@@ -71,7 +71,7 @@ inputfunc = @ConstantInput; %constant reference signal for initial conditions
 %%% Adjusting initial conditions through kinematics
 q = ParallelRobKinematics(r_xy,q12_0,param,inputfunc,[],FL);
 dq = zeros(6,1);
-x0 = [q;dq]; %initial state vector
+x0_ref = [q;dq]; %initial state vector
 x0_tol = [0.1;0.1;0.2;0.2;0.2;0.2;0;0;0;0;0;0];
 
 %------------- END OF CODE --------------
