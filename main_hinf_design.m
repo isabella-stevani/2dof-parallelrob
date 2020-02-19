@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Dec 2019; Last revision: 11-Feb-2020
+% Creation: Dec 2019; Last revision: 18-Feb-2020
 
 close all; clear; clc;
 
@@ -26,10 +26,6 @@ f = (1/T)*(0:(len_t/2))/len_t; %simulation frequency vector
 cord = 'theta'; %reference considering end-effector coordinates
 inputfunc = @RoundInput; %round reference signal
 
-%% Nominal case
-
-% Simulation
-
 % w_in = 1:100;
 % f_in = w_in/(2*pi);
 % f_in = 0.5:0.5:16;
@@ -38,8 +34,121 @@ f_in = round(1:16,4);
 w_in = f_in*2*pi;
 % f_in = 5;
 % w_in = f_in*2*pi;
+
+x0 = x0_ref+x0_tol; %initial conditions tolerance
+sim_type = 'design'; %control design simulation
+FF.on = false; %without feed-forward
+
+fig_sigma = figure; hold on;
+subplot(2,1,1); hold on; subplot(2,1,2); hold on;
+
+%% Simulation
+
+% Uncertain case
+
+%%% Samples between boundaries
+
+%%%% LHS
+ns = 30; %samples
+np = 9; %parameters
+tol_LHS = lhsdesign(ns,np);
+
+mag_unc = cell(1,ns);
+TF_unc = cell(1,ns);
+
+for k = 1:ns
+    
+    uncparam.g = g;
+    uncparam.m1 = round(m1*(1+tolI*(-1+tol_LHS(k,1)*2)),p);
+    uncparam.m2 = round(m2*(1+tolI*(-1+tol_LHS(k,2)*2)),p);
+    uncparam.l0 = round(l0*(1+toll*(-1+tol_LHS(k,3)*2)),p);
+    uncparam.l1 = round(l1*(1+toll*(-1+tol_LHS(k,4)*2)),p);
+    uncparam.l2 = round(l2*(1+toll*(-1+tol_LHS(k,5)*2)),p);
+    uncparam.lg1 = round(lg1*(1+tolI*(-1+tol_LHS(k,6)*2)),p);
+    uncparam.lg2 = round(lg2*(1+tolI*(-1+tol_LHS(k,7)*2)),p);
+    uncparam.Jz1 = round(Jz1*(1+tolI*(-1+tol_LHS(k,8)*2)),p);
+    uncparam.Jz2 = round(Jz2*(1+tolI*(-1+tol_LHS(k,9)*2)),p);
+    
+    mag = zeros(2,length(f_in));
+    TF_data = zeros(2,length(f_in));
+    
+    for j = 1:length(f_in)
+        
+        %%% Reference signal
+        ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in(j),FL);
+
+        [q,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL,ref,cord, ...
+            T,sat,FF,sim_type);
+
+        %%% Raw data
+        in = ref(1:6,:);
+        out = q;
+
+        %%% Actuated data
+        if strcmp(cord,'xy')
+            Qa = [1 0;
+                0 1;
+                0 0;
+                0 0;
+                0 0;
+                0 0];
+        elseif strcmp(cord,'theta')
+            Qa = [0 0;
+                0 0;
+                1 0;
+                0 0;
+                0 1;
+                0 0];
+        end
+
+        in_a = zeros(2,len_t);
+        out_a = zeros(2,len_t);
+
+        for i = 1:len_t
+            in_a(:,i) = Qa'*in(:,i);
+            out_a(:,i) = Qa'*out(:,i);
+        end
+        in_a = in_a';
+        out_a = out_a';
+
+        df = 1/(T*len_t);
+        fft_f = round((0:len_t/2)*df,4);
+        fft_in = fft(in_a);
+        fft_out = fft(out_a);
+        fft_TF = fft_out./fft_in;
+        mag2 = abs(fft_TF);
+        mag1 = mag2(1:len_t/2+1,:);
+
+        mag(:,j) = mag1(fft_f==f_in(j),:);
+        TF_data(:,j) = fft_TF(fft_f==f_in(j),:);
+        
+    end
+    
+    mag_unc{k} = mag2db(mag);
+    [b1,a1] = invfreqs(TF_data(1,:),w_in,0,2);
+    [b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
+    TF_unc{k} = [tf(b1,a1) 0; 0 tf(b2,a2)];
+    
+    figure(fig_sigma);
+    subplot(2,1,1);
+    semilogx(w_in,mag_unc{k}(1,:),'-b',w_in,mag_unc{k}(2,:),'-b');
+    
+end
+
+%%% Tolerance boundaries: Positive
+
+uncparam.g = g;
+uncparam.m1 = round(m1*(1+tolI),p);
+uncparam.m2 = round(m2*(1+tolI),p);
+uncparam.l0 = round(l0*(1+toll),p);
+uncparam.l1 = round(l1*(1+toll),p);
+uncparam.l2 = round(l2*(1+toll),p);
+uncparam.lg1 = round(lg1*(1+tolI),p);
+uncparam.lg2 = round(lg2*(1+tolI),p);
+uncparam.Jz1 = round(Jz1*(1+tolI),p);
+uncparam.Jz2 = round(Jz2*(1+tolI),p);
+
 mag = zeros(2,length(f_in));
-phase = zeros(2,length(f_in));
 TF_data = zeros(2,length(f_in));
 
 for j = 1:length(f_in)
@@ -47,10 +156,140 @@ for j = 1:length(f_in)
     %%% Reference signal
     ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in(j),FL);
 
-    %%% Dynamics
-    x0 = x0_ref+x0_tol; %initial conditions tolerance
-    sim_type = 'design'; %control design simulation
-    FF.on = false; %without feed-forward
+    [q,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
+        ref,cord,T,sat,FF,sim_type);
+
+    %%% Raw data
+    in = ref(1:6,:);
+    out = q;
+
+    %%% Actuated data
+    if strcmp(cord,'xy')
+        Qa = [1 0;
+            0 1;
+            0 0;
+            0 0;
+            0 0;
+            0 0];
+    elseif strcmp(cord,'theta')
+        Qa = [0 0;
+            0 0;
+            1 0;
+            0 0;
+            0 1;
+            0 0];
+    end
+
+    in_a = zeros(2,len_t);
+    out_a = zeros(2,len_t);
+
+    for i = 1:len_t
+        in_a(:,i) = Qa'*in(:,i);
+        out_a(:,i) = Qa'*out(:,i);
+    end
+    in_a = in_a';
+    out_a = out_a';
+    
+    df = 1/(T*len_t);
+    fft_f = round((0:len_t/2)*df,4);
+    fft_in = fft(in_a);
+    fft_out = fft(out_a);
+    fft_TF = fft_out./fft_in;
+    mag2 = abs(fft_TF);
+    mag1 = mag2(1:len_t/2+1,:);
+    
+    mag(:,j) = mag1(fft_f==f_in(j),:);
+    TF_data(:,j) = fft_TF(fft_f==f_in(j),:);
+
+end
+
+mag_unc_pos = mag2db(mag);
+[b1,a1] = invfreqs(TF_data(1,:),w_in,0,2);
+[b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
+TF_unc_pos = [tf(b1,a1) 0; 0 tf(b2,a2)];
+
+%%% Tolerance boundaries: Negative
+
+uncparam.g = g;
+uncparam.m1 = round(m1*(1-tolI),p);
+uncparam.m2 = round(m2*(1-tolI),p);
+uncparam.l0 = round(l0*(1-toll),p);
+uncparam.l1 = round(l1*(1-toll),p);
+uncparam.l2 = round(l2*(1-toll),p);
+uncparam.lg1 = round(lg1*(1-tolI),p);
+uncparam.lg2 = round(lg2*(1-tolI),p);
+uncparam.Jz1 = round(Jz1*(1-tolI),p);
+uncparam.Jz2 = round(Jz2*(1-tolI),p);
+
+mag = zeros(2,length(f_in));
+TF_data = zeros(2,length(f_in));
+
+for j = 1:length(f_in)
+    
+    %%% Reference signal
+    ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in(j),FL);
+
+    [q,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
+        ref,cord,T,sat,FF,sim_type);
+
+    %%% Raw data
+    in = ref(1:6,:);
+    out = q;
+
+    %%% Actuated data
+    if strcmp(cord,'xy')
+        Qa = [1 0;
+            0 1;
+            0 0;
+            0 0;
+            0 0;
+            0 0];
+    elseif strcmp(cord,'theta')
+        Qa = [0 0;
+            0 0;
+            1 0;
+            0 0;
+            0 1;
+            0 0];
+    end
+
+    in_a = zeros(2,len_t);
+    out_a = zeros(2,len_t);
+
+    for i = 1:len_t
+        in_a(:,i) = Qa'*in(:,i);
+        out_a(:,i) = Qa'*out(:,i);
+    end
+    in_a = in_a';
+    out_a = out_a';
+    
+    df = 1/(T*len_t);
+    fft_f = round((0:len_t/2)*df,4);
+    fft_in = fft(in_a);
+    fft_out = fft(out_a);
+    fft_TF = fft_out./fft_in;
+    mag2 = abs(fft_TF);
+    mag1 = mag2(1:len_t/2+1,:);
+    
+    mag(:,j) = mag1(fft_f==f_in(j),:);
+    TF_data(:,j) = fft_TF(fft_f==f_in(j),:);
+
+end
+
+mag_unc_neg = mag2db(mag);
+[b1,a1] = invfreqs(TF_data(1,:),w_in,0,2);
+[b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
+TF_unc_neg = [tf(b1,a1) 0; 0 tf(b2,a2)];
+
+% Nominal case
+
+mag = zeros(2,length(f_in));
+TF_data = zeros(2,length(f_in));
+
+for j = 1:length(f_in)
+    
+    %%% Reference signal
+    ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in(j),FL);
 
     [q,~,~] = ParallelRobDynamics(x0,t,param,param,FL, ...
         ref,cord,T,sat,FF,sim_type);
@@ -93,36 +332,39 @@ for j = 1:length(f_in)
     fft_TF = fft_out./fft_in;
     mag2 = abs(fft_TF);
     mag1 = mag2(1:len_t/2+1,:);
-%     mag1(2:end-1,:) = 2*mag1(2:end-1,:);
-    fft_TF_2=fft_TF;%store the FFT results in another array
-    %detect noise (very small numbers (eps)) and ignore them
-    threshold = max(max(abs(fft_TF)))/10000; %tolerance threshold
-    fft_TF_2(abs(fft_TF)<threshold) = 0; %maskout values that are below the threshold
-    phase2=atan2(imag(fft_TF_2),real(fft_TF_2))*180/pi; %phase information
-    phase1 = phase2(1:len_t/2+1,:);
+% %     mag1(2:end-1,:) = 2*mag1(2:end-1,:);
+%     fft_TF_2=fft_TF;%store the FFT results in another array
+%     %detect noise (very small numbers (eps)) and ignore them
+%     threshold = max(max(abs(fft_TF)))/10000; %tolerance threshold
+%     fft_TF_2(abs(fft_TF)<threshold) = 0; %maskout values that are below the threshold
+%     phase2=atan2(imag(fft_TF_2),real(fft_TF_2))*180/pi; %phase information
+%     phase1 = phase2(1:len_t/2+1,:);
     
     mag(:,j) = mag1(fft_f==f_in(j),:);
-    phase(:,j) = phase1(fft_f==f_in(j),:);
+%     phase(:,j) = phase1(fft_f==f_in(j),:);
     TF_data(:,j) = fft_TF(fft_f==f_in(j),:);
 
 end
 
-mag_dB = mag2db(mag);
+mag_nom = mag2db(mag);
 % phase_deg = phase;
 % phase_deg = phase*(180/pi);
 [b1,a1] = invfreqs(TF_data(1,:),w_in,0,2);
 [b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
-TF = [tf(b1,a1) 0; 0 tf(b2,a2)];
+TF_nom = [tf(b1,a1) 0; 0 tf(b2,a2)];
 
-figure;
+figure(fig_sigma);
 subplot(2,1,1);
-semilogx(w_in,mag_dB(1,:),'-k',w_in,mag_dB(2,:),'-k');
+semilogx(w_in,mag_unc_pos(1,:),'-r',w_in,mag_unc_pos(2,:),'-r', ...
+    w_in,mag_unc_neg(1,:),'-r',w_in,mag_unc_neg(2,:),'-r', ...
+    w_in,mag_nom(1,:),'-k',w_in,mag_nom(2,:),'-k');
 axis([-Inf w_in(end) -20 0]);
 title('FFT');
 ylabel('Magnitude (dB)');
 grid on;
+set(gca, 'XScale', 'log');
 subplot(2,1,2);
-sigma(TF,w_in,'-k');
+sigma(TF_unc{:},'-b',TF_unc_pos,'-r',TF_unc_neg,'-r',TF_nom,w_in,'-k');
 axis([-Inf w_in(end) -20 0]);
 title('TF');
 ylabel('Magnitude');
