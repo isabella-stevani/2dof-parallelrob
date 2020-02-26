@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Dec 2019; Last revision: 18-Feb-2020
+% Creation: Dec 2019; Last revision: 23-Feb-2020
 
 close all; clear; clc;
 
@@ -29,8 +29,9 @@ inputfunc = @RoundInput; %round reference signal
 % w_in = 1:100;
 % f_in = w_in/(2*pi);
 % f_in = 0.5:0.5:16;
-% f_in = round(0.2:0.2:16,4);
-f_in = round(1:16,4);
+f_in = round(0.2:0.2:16,4);
+% f_in = round(1:16,4);
+% f_in = round(1:4:16,4);
 w_in = f_in*2*pi;
 % f_in = 5;
 % w_in = f_in*2*pi;
@@ -44,17 +45,85 @@ subplot(2,1,1); hold on; subplot(2,1,2); hold on;
 
 %% Simulation
 
+% Nominal case
+
+mag = zeros(2,length(f_in));
+TF_data = zeros(2,length(f_in));
+
+for j = 1:length(f_in)
+    
+    %%% Reference signal
+    ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in(j),FL);
+
+    [q,~,~] = ParallelRobDynamics(x0,t,param,param,FL, ...
+        ref,cord,T,sat,FF,sim_type);
+
+    %%% Raw data
+    in = ref(1:6,:);
+    out = q;
+
+    %%% Actuated data
+    if strcmp(cord,'xy')
+        Qa = [1 0;
+            0 1;
+            0 0;
+            0 0;
+            0 0;
+            0 0];
+    elseif strcmp(cord,'theta')
+        Qa = [0 0;
+            0 0;
+            1 0;
+            0 0;
+            0 1;
+            0 0];
+    end
+
+    in_a = zeros(2,len_t);
+    out_a = zeros(2,len_t);
+
+    for i = 1:len_t
+        in_a(:,i) = Qa'*in(:,i);
+        out_a(:,i) = Qa'*out(:,i);
+    end
+    in_a = in_a';
+    out_a = out_a';
+    
+    df = 1/(T*len_t);
+    fft_f = round((0:len_t/2)*df,4);
+    fft_in = fft(in_a);
+    fft_out = fft(out_a);
+    fft_TF = fft_out./fft_in;
+    mag2 = abs(fft_TF);
+    mag1 = mag2(1:len_t/2+1,:);
+    
+    mag(:,j) = mag1(fft_f==f_in(j),:);
+    TF_data(:,j) = fft_TF(fft_f==f_in(j),:);
+
+end
+
+mag_nom = mag2db(mag);
+[b1,a1] = invfreqs(TF_data(1,:),w_in,0,2);
+[b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
+TF_nom = [tf(b1,a1) 0; 0 tf(b2,a2)];
+sv_nom = mag2db(sigma(TF_nom,w_in));
+sv_error_nom = sigma((TF_nom-TF)*TF^-1);
+error_nom = [norm(sv_error_nom(1,:));norm(sv_error_nom(2,:))];
+
 % Uncertain case
 
 %%% Samples between boundaries
 
 %%%% LHS
-ns = 30; %samples
+ns = 20; %samples
 np = 9; %parameters
 tol_LHS = lhsdesign(ns,np);
 
 mag_unc = cell(1,ns);
 TF_unc = cell(1,ns);
+sv_unc = cell(1,ns);
+sv_error_unc = cell(1,ns);
+error_unc = cell(1,ns);
 
 for k = 1:ns
     
@@ -128,10 +197,17 @@ for k = 1:ns
     [b1,a1] = invfreqs(TF_data(1,:),w_in,0,2);
     [b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
     TF_unc{k} = [tf(b1,a1) 0; 0 tf(b2,a2)];
+    sv_unc{k} = mag2db(sigma(TF_unc{k},w_in));
+    sv_error_unc{k} = sigma((TF_unc{k}-TF)*TF^-1);
+    error_unc{k} = [norm(sv_error_unc{k}(1,:));norm(sv_error_unc{k}(2,:))];
     
     figure(fig_sigma);
     subplot(2,1,1);
-    semilogx(w_in,mag_unc{k}(1,:),'-b',w_in,mag_unc{k}(2,:),'-b');
+    plot(w_in,mag_unc{k}(1,:),'-b');
+    p1 = plot(w_in,mag_unc{k}(2,:),'-b');
+    subplot(2,1,2);
+    plot(w_in,sv_unc{k}(1,:),'-b');
+    plot(w_in,sv_unc{k}(2,:),'-b');
     
 end
 
@@ -207,6 +283,9 @@ mag_unc_pos = mag2db(mag);
 [b1,a1] = invfreqs(TF_data(1,:),w_in,0,2);
 [b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
 TF_unc_pos = [tf(b1,a1) 0; 0 tf(b2,a2)];
+sv_unc_pos = mag2db(sigma(TF_unc_pos,w_in));
+sv_error_unc_pos = sigma((TF_unc_pos-TF)*TF^-1);
+error_unc_pos = [norm(sv_error_unc_pos(1,:));norm(sv_error_unc_pos(2,:))];
 
 %%% Tolerance boundaries: Negative
 
@@ -280,95 +359,36 @@ mag_unc_neg = mag2db(mag);
 [b1,a1] = invfreqs(TF_data(1,:),w_in,0,2);
 [b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
 TF_unc_neg = [tf(b1,a1) 0; 0 tf(b2,a2)];
-
-% Nominal case
-
-mag = zeros(2,length(f_in));
-TF_data = zeros(2,length(f_in));
-
-for j = 1:length(f_in)
-    
-    %%% Reference signal
-    ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in(j),FL);
-
-    [q,~,~] = ParallelRobDynamics(x0,t,param,param,FL, ...
-        ref,cord,T,sat,FF,sim_type);
-
-    %%% Raw data
-    in = ref(1:6,:);
-    out = q;
-
-    %%% Actuated data
-    if strcmp(cord,'xy')
-        Qa = [1 0;
-            0 1;
-            0 0;
-            0 0;
-            0 0;
-            0 0];
-    elseif strcmp(cord,'theta')
-        Qa = [0 0;
-            0 0;
-            1 0;
-            0 0;
-            0 1;
-            0 0];
-    end
-
-    in_a = zeros(2,len_t);
-    out_a = zeros(2,len_t);
-
-    for i = 1:len_t
-        in_a(:,i) = Qa'*in(:,i);
-        out_a(:,i) = Qa'*out(:,i);
-    end
-    in_a = in_a';
-    out_a = out_a';
-    
-    df = 1/(T*len_t);
-    fft_f = round((0:len_t/2)*df,4);
-    fft_in = fft(in_a);
-    fft_out = fft(out_a);
-    fft_TF = fft_out./fft_in;
-    mag2 = abs(fft_TF);
-    mag1 = mag2(1:len_t/2+1,:);
-% %     mag1(2:end-1,:) = 2*mag1(2:end-1,:);
-%     fft_TF_2=fft_TF;%store the FFT results in another array
-%     %detect noise (very small numbers (eps)) and ignore them
-%     threshold = max(max(abs(fft_TF)))/10000; %tolerance threshold
-%     fft_TF_2(abs(fft_TF)<threshold) = 0; %maskout values that are below the threshold
-%     phase2=atan2(imag(fft_TF_2),real(fft_TF_2))*180/pi; %phase information
-%     phase1 = phase2(1:len_t/2+1,:);
-    
-    mag(:,j) = mag1(fft_f==f_in(j),:);
-%     phase(:,j) = phase1(fft_f==f_in(j),:);
-    TF_data(:,j) = fft_TF(fft_f==f_in(j),:);
-
-end
-
-mag_nom = mag2db(mag);
-% phase_deg = phase;
-% phase_deg = phase*(180/pi);
-[b1,a1] = invfreqs(TF_data(1,:),w_in,0,2);
-[b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
-TF_nom = [tf(b1,a1) 0; 0 tf(b2,a2)];
+sv_unc_neg = mag2db(sigma(TF_unc_neg,w_in));
+sv_error_unc_neg = sigma((TF_unc_neg-TF)*TF^-1);
+error_unc_neg = [norm(sv_error_unc_neg(1,:));norm(sv_error_unc_neg(2,:))];
 
 figure(fig_sigma);
 subplot(2,1,1);
-semilogx(w_in,mag_unc_pos(1,:),'-r',w_in,mag_unc_pos(2,:),'-r', ...
-    w_in,mag_unc_neg(1,:),'-r',w_in,mag_unc_neg(2,:),'-r', ...
-    w_in,mag_nom(1,:),'-k',w_in,mag_nom(2,:),'-k');
+% semilogx(w_in,mag_unc_pos(1,:),'-r',w_in,mag_unc_pos(2,:),'-r', ...
+%     w_in,mag_unc_neg(1,:),'-r',w_in,mag_unc_neg(2,:),'-r', ...
+%     w_in,mag_nom(1,:),'-k',w_in,mag_nom(2,:),'-k');
+plot(w_in,mag_unc_pos(1,:),'-r');
+p2 = plot(w_in,mag_unc_pos(2,:),'-r');
+plot(w_in,mag_unc_neg(1,:),'-r');
+p3 = plot(w_in,mag_unc_neg(2,:),'-r');
+plot(w_in,mag_nom(1,:),'-k');
+p4 = plot(w_in,mag_nom(2,:),'-k');
 axis([-Inf w_in(end) -20 0]);
 title('FFT');
 ylabel('Magnitude (dB)');
 grid on;
 set(gca, 'XScale', 'log');
+legend([p1,p2,p3,p4],{'Uncertain','Positive','Negative','Nominal'});
 subplot(2,1,2);
-sigma(TF_unc{:},'-b',TF_unc_pos,'-r',TF_unc_neg,'-r',TF_nom,w_in,'-k');
+plot(w_in,sv_unc_pos(1,:),'-r',w_in,sv_unc_pos(2,:),'-r');
+plot(w_in,sv_unc_neg(1,:),'-r',w_in,sv_unc_neg(2,:),'-r');
+plot(w_in,sv_nom(1,:),'-k',w_in,sv_nom(2,:),'-k');
 axis([-Inf w_in(end) -20 0]);
 title('TF');
 ylabel('Magnitude');
 grid on;
+set(gca, 'XScale', 'log');
 
 % x0_a = Qa'*x0(1:6); %actuated initial conditions
 

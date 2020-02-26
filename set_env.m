@@ -49,6 +49,8 @@ FL.K1 = -(FL.p1+FL.p2);
 FL.K2 = FL.p1*FL.p2;
 FL.lambdabar = 10*max(abs(FL.p1),abs(FL.p2)); %quick convergence for coupling equations
 
+TF = tf([FL.K2],[1 FL.K1 FL.K2])*eye(2);
+
 %% Uncertain parameters
 
 tolI = 0.20; % 20% accurate (inertia parameters)
