@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Dec 2019; Last revision: 23-Feb-2020
+% Creation: Dec 2019; Last revision: 28-Feb-2020
 
 close all; clear; clc;
 
@@ -109,6 +109,7 @@ TF_nom = [tf(b1,a1) 0; 0 tf(b2,a2)];
 sv_nom = mag2db(sigma(TF_nom,w_in));
 sv_error_nom = sigma((TF_nom-TF)*TF^-1);
 error_nom = [norm(sv_error_nom(1,:));norm(sv_error_nom(2,:))];
+TF_error_nom = [TF_nom(1,1);TF_nom(2,2)];
 
 % Uncertain case
 
@@ -211,6 +212,11 @@ for k = 1:ns
     
 end
 
+[max_error_unc,max_error_unc_idx] = max([error_unc{:}],[],2);
+aux1 = TF_unc{max_error_unc_idx(1)};
+aux2 = TF_unc{max_error_unc_idx(2)};
+TF_max_error_unc = [aux1(1,1);aux2(2,2)];
+
 %%% Tolerance boundaries: Positive
 
 uncparam.g = g;
@@ -286,6 +292,7 @@ TF_unc_pos = [tf(b1,a1) 0; 0 tf(b2,a2)];
 sv_unc_pos = mag2db(sigma(TF_unc_pos,w_in));
 sv_error_unc_pos = sigma((TF_unc_pos-TF)*TF^-1);
 error_unc_pos = [norm(sv_error_unc_pos(1,:));norm(sv_error_unc_pos(2,:))];
+TF_error_unc_pos = [TF_unc_pos(1,1);TF_unc_pos(2,2)];
 
 %%% Tolerance boundaries: Negative
 
@@ -362,6 +369,16 @@ TF_unc_neg = [tf(b1,a1) 0; 0 tf(b2,a2)];
 sv_unc_neg = mag2db(sigma(TF_unc_neg,w_in));
 sv_error_unc_neg = sigma((TF_unc_neg-TF)*TF^-1);
 error_unc_neg = [norm(sv_error_unc_neg(1,:));norm(sv_error_unc_neg(2,:))];
+TF_error_unc_neg = [TF_unc_neg(1,1);TF_unc_neg(2,2)];
+
+error = [error_nom,max_error_unc,error_unc_pos,error_unc_neg];
+TF_error = [TF_error_nom,TF_max_error_unc,TF_error_unc_pos, ...
+    TF_error_unc_neg];
+
+[error_i,i] = max(error,[],1);
+[error_ij,j] = max(error_i);
+max_error = error(i(j),j);
+max_TF_error = TF_error(i(j),j);
 
 figure(fig_sigma);
 subplot(2,1,1);
