@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Dec 2019; Last revision: 28-Feb-2020
+% Creation: Dec 2019; Last revision: 05-Mar-2020
 
 close all; clear; clc;
 
@@ -107,7 +107,7 @@ mag_nom = mag2db(mag);
 [b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
 TF_nom = [tf(b1,a1) 0; 0 tf(b2,a2)];
 sv_nom = mag2db(sigma(TF_nom,w_in));
-sv_error_nom = sigma((TF_nom-TF)*TF^-1);
+sv_error_nom = sigma((TF_nom-TF)*TF^-1,w_in);
 error_nom = [norm(sv_error_nom(1,:));norm(sv_error_nom(2,:))];
 TF_error_nom = [TF_nom(1,1);TF_nom(2,2)];
 
@@ -199,7 +199,7 @@ for k = 1:ns
     [b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
     TF_unc{k} = [tf(b1,a1) 0; 0 tf(b2,a2)];
     sv_unc{k} = mag2db(sigma(TF_unc{k},w_in));
-    sv_error_unc{k} = sigma((TF_unc{k}-TF)*TF^-1);
+    sv_error_unc{k} = sigma((TF_unc{k}-TF)*TF^-1,w_in);
     error_unc{k} = [norm(sv_error_unc{k}(1,:));norm(sv_error_unc{k}(2,:))];
     
     figure(fig_sigma);
@@ -290,7 +290,7 @@ mag_unc_pos = mag2db(mag);
 [b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
 TF_unc_pos = [tf(b1,a1) 0; 0 tf(b2,a2)];
 sv_unc_pos = mag2db(sigma(TF_unc_pos,w_in));
-sv_error_unc_pos = sigma((TF_unc_pos-TF)*TF^-1);
+sv_error_unc_pos = sigma((TF_unc_pos-TF)*TF^-1,w_in);
 error_unc_pos = [norm(sv_error_unc_pos(1,:));norm(sv_error_unc_pos(2,:))];
 TF_error_unc_pos = [TF_unc_pos(1,1);TF_unc_pos(2,2)];
 
@@ -367,7 +367,7 @@ mag_unc_neg = mag2db(mag);
 [b2,a2] = invfreqs(TF_data(2,:),w_in,0,2);
 TF_unc_neg = [tf(b1,a1) 0; 0 tf(b2,a2)];
 sv_unc_neg = mag2db(sigma(TF_unc_neg,w_in));
-sv_error_unc_neg = sigma((TF_unc_neg-TF)*TF^-1);
+sv_error_unc_neg = sigma((TF_unc_neg-TF)*TF^-1,w_in);
 error_unc_neg = [norm(sv_error_unc_neg(1,:));norm(sv_error_unc_neg(2,:))];
 TF_error_unc_neg = [TF_unc_neg(1,1);TF_unc_neg(2,2)];
 
@@ -379,12 +379,12 @@ TF_error = [TF_error_nom,TF_max_error_unc,TF_error_unc_pos, ...
 [error_ij,j] = max(error_i);
 max_error = error(i(j),j);
 max_TF_error = TF_error(i(j),j);
+max_sv_error = mag2db(sigma(max_TF_error,w_in));
+
+%% Graphics
 
 figure(fig_sigma);
 subplot(2,1,1);
-% semilogx(w_in,mag_unc_pos(1,:),'-r',w_in,mag_unc_pos(2,:),'-r', ...
-%     w_in,mag_unc_neg(1,:),'-r',w_in,mag_unc_neg(2,:),'-r', ...
-%     w_in,mag_nom(1,:),'-k',w_in,mag_nom(2,:),'-k');
 plot(w_in,mag_unc_pos(1,:),'-r');
 p2 = plot(w_in,mag_unc_pos(2,:),'-r');
 plot(w_in,mag_unc_neg(1,:),'-r');
@@ -405,7 +405,54 @@ axis([-Inf w_in(end) -20 0]);
 title('TF');
 ylabel('Magnitude');
 grid on;
-set(gca, 'XScale', 'log');
+set(gca,'XScale','log');
+
+%% Robustness barriers
+
+lm = (max_TF_error-TF(1,1))*TF(1,1)^-1;
+figure; sigma(lm,w_in);
+axis([-Inf w_in(end) -Inf Inf]);
+legend('lm','Location','Northwest');
+
+% Parameters
+delta_r = 0.07; w_r = 5; % reference tracking
+delta_d = 0.1; w_d = 10; % disturbance rejection
+delta_m = 0.15; w_m = 50; % measuring error rejection
+
+% Barriers
+S = 1/lm;
+R = 1/(delta_r*(1-lm));
+D = 1/(delta_d*(1-lm));
+M = delta_m/(1+lm);
+
+bar_s = mag2db(sigma(S,w_in));
+bar_r = mag2db(sigma(R,w_in));
+bar_d = mag2db(sigma(D,w_in));
+bar_m = mag2db(sigma(M,w_in));
+
+for i = 1:length(w_in)
+    if w_in(i) > w_r
+        bar_r(i) = 0;
+    end
+    if w_in(i) > w_d
+        bar_d(i) = 0;
+    end
+    if w_in(i) < w_m
+        bar_m(i) = 0;
+    end
+end
+
+figure; hold on;
+plot(w_in,bar_s,'--k');
+plot(w_in,bar_r,'--r');
+plot(w_in,bar_d,'--b');
+plot(w_in,bar_m,'--m');
+plot(w_in,max_sv_error,'-k');
+set(gca,'XScale','log');
+axis([-Inf w_in(end) -Inf Inf]);
+legend('Stability','Tracking','Disturbance','Measurement','Model');
+
+save('status.mat');
 
 % x0_a = Qa'*x0(1:6); %actuated initial conditions
 
