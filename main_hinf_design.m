@@ -37,13 +37,13 @@ w_in = f_in*2*pi;
 % w_in = f_in*2*pi;
 
 x0 = x0_ref+x0_tol; %initial conditions tolerance
+x0 = [x0;0;0;0;0]; %include initial conditions for robust controller
 sim_type = 'design'; %control design simulation
 FF.on = false; %without feed-forward
+K = tf(1,1); %unitary gain as robust controller
 
 fig_sigma = figure; hold on;
 subplot(2,1,1); hold on; subplot(2,1,2); hold on;
-
-K = 0;
 
 %% Simulation
 
@@ -480,8 +480,6 @@ legend('Stability','Tracking','Disturbance','Measurement','Plant', ...
     'Shaped Plant','Controlled Plant');
 
 %% Comparison
-
-
 
 save('status.mat');
 

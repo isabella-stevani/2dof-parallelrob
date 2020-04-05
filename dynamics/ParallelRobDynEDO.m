@@ -47,6 +47,8 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,FL,K,ref,Qa,Qp, ...
 
     q = x(1:6);
     dq = x(7:12);
+    u_K = x(13:14);
+    du_K = x(15:16);
     
     qa = Qa'*q;
     dqa = Qa'*dq;
@@ -54,7 +56,22 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,FL,K,ref,Qa,Qp, ...
     dea = dr-dqa;
     
     %%% Robust control signal
-    u_K = ea;
+    num_K = K.num{:};
+    den_K = K.den{:};
+    if length(den_K) == 1
+        u_K = ea;
+        du_K = [0;0];
+        d2u_K = [0;0];
+    else
+        n2 = num_K(1);
+        n1 = num_K(2);
+        n0 = num_K(3);
+        d2 = den_K(1);
+        d1 = den_K(2);
+        d0 = den_K(3);
+        d2u_K = (1/d2)*(n1*dea+n0*ea-d1*du_K-d0*u_K);
+%         d2u_K = n1*dea+n0*ea-d1*du_K-d0*u_K;
+    end
     
     % FL control law
     u = FLControlLaw(x,ref,cord,param,FL,u_K,Qa,Qp,sat,FF,pos, ...
@@ -64,7 +81,7 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,FL,K,ref,Qa,Qp, ...
     z = [u+Cunc'*(-Vunc-Gunc);
     -dAunc*dq-2*FL.lambdabar*Aunc*dq-FL.lambdabar^2*qbarunc];
     d2q = Z\z;
-    dx = [dq;d2q];
+    dx = [dq;d2q;du_K;d2u_K];
     
     if strcmp(outvar,'x')
         out = dx;
