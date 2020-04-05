@@ -5,7 +5,7 @@
 % Polytechnic School of The University of Sao Paulo, Dept. of 
 % Telecommunications and Control (PTC)
 % E-mail address: isabella.stevani@usp.br
-% Creation: Dec 2019; Last revision: 05-Mar-2020
+% Creation: Dec 2019; Last revision: 05-Apr-2020
 
 close all; clear; clc;
 
@@ -43,6 +43,8 @@ FF.on = false; %without feed-forward
 fig_sigma = figure; hold on;
 subplot(2,1,1); hold on; subplot(2,1,2); hold on;
 
+K = 0;
+
 %% Simulation
 
 % Nominal case
@@ -55,7 +57,7 @@ for j = 1:length(f_in)
     %%% Reference signal
     ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in(j),FL);
 
-    [q,~,~] = ParallelRobDynamics(x0,t,param,param,FL, ...
+    [q,~,~] = ParallelRobDynamics(x0,t,param,param,FL,K, ...
         ref,cord,T,sat,FF,sim_type);
 
     %%% Raw data
@@ -117,6 +119,7 @@ TF_error_nom = [TF_nom(1,1);TF_nom(2,2)];
 
 %%%% LHS
 ns = 20; %samples
+% ns = 1; %samples
 np = 9; %parameters
 tol_LHS = lhsdesign(ns,np);
 
@@ -147,8 +150,8 @@ for k = 1:ns
         %%% Reference signal
         ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in(j),FL);
 
-        [q,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL,ref,cord, ...
-            T,sat,FF,sim_type);
+        [q,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL,K,ref, ...
+            cord,T,sat,FF,sim_type);
 
         %%% Raw data
         in = ref(1:6,:);
@@ -238,7 +241,7 @@ for j = 1:length(f_in)
     %%% Reference signal
     ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in(j),FL);
 
-    [q,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
+    [q,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL,K, ...
         ref,cord,T,sat,FF,sim_type);
 
     %%% Raw data
@@ -315,7 +318,7 @@ for j = 1:length(f_in)
     %%% Reference signal
     ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in(j),FL);
 
-    [q,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
+    [q,~,~] = ParallelRobDynamics(x0,t,param,uncparam,FL,K, ...
         ref,cord,T,sat,FF,sim_type);
 
     %%% Raw data
@@ -415,9 +418,9 @@ axis([-Inf w_in(end) -Inf Inf]);
 legend('lm','Location','Northwest');
 
 % Parameters
-delta_r = 0.07; w_r = 5; % reference tracking
-delta_d = 0.1; w_d = 10; % disturbance rejection
-delta_m = 0.15; w_m = 50; % measuring error rejection
+delta_r = 0.07; w_r = 15; % reference tracking
+delta_d = 0.1; w_d = 20; % disturbance rejection
+delta_m = 0.25; w_m = 80; % measuring error rejection
 
 % Barriers
 S = 1/lm;
@@ -429,6 +432,8 @@ bar_s = mag2db(sigma(S,w_in));
 bar_r = mag2db(sigma(R,w_in));
 bar_d = mag2db(sigma(D,w_in));
 bar_m = mag2db(sigma(M,w_in));
+
+sv_nom = mag2db(sigma(TF(1,1),w_in));
 
 for i = 1:length(w_in)
     if w_in(i) > w_r
@@ -442,15 +447,41 @@ for i = 1:length(w_in)
     end
 end
 
-figure; hold on;
-plot(w_in,bar_s,'--k');
+fig_hinf = figure; hold on;
+plot(w_in,bar_s,'--c');
 plot(w_in,bar_r,'--r');
 plot(w_in,bar_d,'--b');
 plot(w_in,bar_m,'--m');
-plot(w_in,max_sv_error,'-k');
+plot(w_in,sv_nom,'-k');
 set(gca,'XScale','log');
 axis([-Inf w_in(end) -Inf Inf]);
-legend('Stability','Tracking','Disturbance','Measurement','Model');
+
+% Loop-shaping
+s = tf('s');
+G = TF(1,1);
+W1 = 475/(s+15);
+W2 = 15/(s+15);
+W = W1*W2;
+% W1 = 400/(s+25);
+% W2 = (s+10)/s;
+G_W = W2*G*W1;
+sv_nom_W = mag2db(sigma(G_W,w_in));
+% [K,CL,gamma,info] = ncfsyn(G,W1,W2);
+% [K,CL,gamma,info] = loopsyn(G,G_W);
+K = W;
+GK = G*K;
+sv_nom_GK = mag2db(sigma(GK,w_in));
+
+figure(fig_hinf);
+plot(w_in,sv_nom_W,'--k');
+plot(w_in,sv_nom_GK,'*k');
+
+legend('Stability','Tracking','Disturbance','Measurement','Plant', ...
+    'Shaped Plant','Controlled Plant');
+
+%% Comparison
+
+
 
 save('status.mat');
 

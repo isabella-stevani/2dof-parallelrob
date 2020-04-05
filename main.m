@@ -32,18 +32,20 @@ ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_in,FL);
 x0 = x0_ref+x0_tol; %initial conditions tolerance
 sim_type = 'default'; %default simulation
 
+K = 0;
+
 %% Nominal simulation
 
 % Without feedforward
 %%% Dynamics
 FF.on = false;
-[q,dq,u] = ParallelRobDynamics(x0,t,param,param,FL,ref,cord,T, ...
+[q,dq,u] = ParallelRobDynamics(x0,t,param,param,FL,K,ref,cord,T, ...
     sat,FF,sim_type);
 
 % With feedforward
 %%% Dynamics
 FF.on = true;
-[q_FF,dq_FF,u_FF] = ParallelRobDynamics(x0,t,param,param,FL, ...
+[q_FF,dq_FF,u_FF] = ParallelRobDynamics(x0,t,param,param,FL,K, ...
     ref,cord,T,sat,FF,sim_type);
 
 % States
@@ -160,13 +162,13 @@ for i = 1:n
     % Without feedforward
     %%% Dynamics
     FF.on = false;
-    [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,FL,ref,cord, ...
+    [q,dq,u] = ParallelRobDynamics(x0,t,param,uncparam,FL,K,ref,cord, ...
         T,sat,FF,sim_type);
 
     % With feedforward
     %%% Dynamics
     FF.on = true;
-    [q_FF,dq_FF,u_FF] = ParallelRobDynamics(x0,t,param,uncparam,FL, ...
+    [q_FF,dq_FF,u_FF] = ParallelRobDynamics(x0,t,param,uncparam,FL,K, ...
         ref,cord,T,sat,FF,sim_type);
     
     % States

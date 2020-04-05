@@ -1,4 +1,4 @@
-function [u] = RobustControlLaw(x,ref,cord,param,FL,Qa,Qp,sat,FF, ...
+function [u] = FLControlLaw(x,ref,cord,param,FL,u_K,Qa,Qp,sat,FF, ...
     pos,sim_type)
 % Computes robust control law.
 % Inputs:
@@ -7,6 +7,7 @@ function [u] = RobustControlLaw(x,ref,cord,param,FL,Qa,Qp,sat,FF, ...
 %   cord: actuated coordinates
 %   param: model parameters
 %   FL: FL control parameters
+%   u_K: robust control signal
 %   Qa,Qp: actuated and passive coordinates
 %   sat: actuators' saturation
 %   FF: feedforward enable
@@ -54,8 +55,7 @@ function [u] = RobustControlLaw(x,ref,cord,param,FL,Qa,Qp,sat,FF, ...
     if strcmp(sim_type,'default')
 %         uhinf = d2r + FL.K1*dr + FL.K2*r;
 %         u = sat*tanh((Va+Ga+Ma*(-FL.K1*dqa-FL.K2*qa+uhinf))/sat); %control signal
-        uhinf = r-qa;
-        u = sat*tanh((Va+Ga+Ma*(-FL.K1*dqa+FL.K2*uhinf))/sat); %control signal
+        u = sat*tanh((Va+Ga+Ma*(-FL.K1*dqa+FL.K2*u_K))/sat); %control signal
 %         uhinf = r-qa;
 %         u = Va+Ga+Ma*(-40*dqa+(40*2*pi*1/0.07)*r); %control signal
 %         uhinf = r-qa;
@@ -63,8 +63,7 @@ function [u] = RobustControlLaw(x,ref,cord,param,FL,Qa,Qp,sat,FF, ...
     elseif strcmp(sim_type,'design')
 %         uhinf = d2r + FL.K1*dr+ FL.K2*r;
 %         u = Va+Ga+Ma*(-FL.K1*dqa-FL.K2*qa+uhinf); %control signal
-        uhinf = r-qa;
-        u = Va+Ga+Ma*(-FL.K1*dqa+FL.K2*uhinf); %control signal
+        u = Va+Ga+Ma*(-FL.K1*dqa+FL.K2*u_K); %control signal
     end
 
 end
