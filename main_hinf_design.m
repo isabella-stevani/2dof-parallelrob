@@ -51,6 +51,7 @@ subplot(2,1,1); hold on; subplot(2,1,2); hold on;
 
 mag = zeros(2,length(f_in));
 TF_data = zeros(2,length(f_in));
+paramvec_nom = param;
 
 for j = 1:length(f_in)
     
@@ -115,11 +116,14 @@ TF_error_nom = [TF_nom(1,1);TF_nom(2,2)];
 
 % Uncertain case
 
+sim_type = 'default'; %with saturation
+FF.on = true; %with feed-forward
+
 %%% Samples between boundaries
 
 %%%% LHS
 ns = 20; %samples
-% ns = 1; %samples
+% ns = 2; %samples
 np = 9; %parameters
 tol_LHS = lhsdesign(ns,np);
 
@@ -128,6 +132,7 @@ TF_unc = cell(1,ns);
 sv_unc = cell(1,ns);
 sv_error_unc = cell(1,ns);
 error_unc = cell(1,ns);
+paramvec_unc = cell(1,ns);
 
 for k = 1:ns
     
@@ -204,6 +209,8 @@ for k = 1:ns
     sv_unc{k} = mag2db(sigma(TF_unc{k},w_in));
     sv_error_unc{k} = sigma((TF_unc{k}-TF)*TF^-1,w_in);
     error_unc{k} = [norm(sv_error_unc{k}(1,:));norm(sv_error_unc{k}(2,:))];
+    paramvec_unc{k} = uncparam;
+
     
     figure(fig_sigma);
     subplot(2,1,1);
@@ -219,6 +226,9 @@ end
 aux1 = TF_unc{max_error_unc_idx(1)};
 aux2 = TF_unc{max_error_unc_idx(2)};
 TF_max_error_unc = [aux1(1,1);aux2(2,2)];
+[~,max_max_error_unc_idx] = max(max_error_unc);
+paramvec_max_error_unc = ...
+    paramvec_unc{max_error_unc_idx(max_max_error_unc_idx)};
 
 %%% Tolerance boundaries: Positive
 
@@ -235,6 +245,7 @@ uncparam.Jz2 = round(Jz2*(1+tolI),p);
 
 mag = zeros(2,length(f_in));
 TF_data = zeros(2,length(f_in));
+paramvec_unc_pos = uncparam;
 
 for j = 1:length(f_in)
     
@@ -312,6 +323,7 @@ uncparam.Jz2 = round(Jz2*(1-tolI),p);
 
 mag = zeros(2,length(f_in));
 TF_data = zeros(2,length(f_in));
+paramvec_unc_neg = uncparam;
 
 for j = 1:length(f_in)
     
@@ -375,6 +387,8 @@ error_unc_neg = [norm(sv_error_unc_neg(1,:));norm(sv_error_unc_neg(2,:))];
 TF_error_unc_neg = [TF_unc_neg(1,1);TF_unc_neg(2,2)];
 
 error = [error_nom,max_error_unc,error_unc_pos,error_unc_neg];
+paramvec_error = [paramvec_nom,paramvec_max_error_unc,paramvec_unc_pos, ...
+    paramvec_unc_neg];
 TF_error = [TF_error_nom,TF_max_error_unc,TF_error_unc_pos, ...
     TF_error_unc_neg];
 
@@ -383,6 +397,7 @@ TF_error = [TF_error_nom,TF_max_error_unc,TF_error_unc_pos, ...
 max_error = error(i(j),j);
 max_TF_error = TF_error(i(j),j);
 max_sv_error = mag2db(sigma(max_TF_error,w_in));
+max_paramvec_error = paramvec_error(j);
 
 %% Graphics
 
@@ -466,9 +481,9 @@ W = W1*W2;
 % W2 = (s+10)/s;
 G_W = W2*G*W1;
 sv_nom_W = mag2db(sigma(G_W,w_in));
-% [K,CL,gamma,info] = ncfsyn(G,W1,W2);
+[K,CL,gamma,info] = ncfsyn(G,W1,W2);
 % [K,CL,gamma,info] = loopsyn(G,G_W);
-K = W;
+% K = W;
 GK = G*K;
 sv_nom_GK = mag2db(sigma(GK,w_in));
 
@@ -481,7 +496,118 @@ legend('Stability','Tracking','Disturbance','Measurement','Plant', ...
 
 %% Comparison
 
-save('status.mat');
+f_ref = 2;
+
+%%% Reference signal
+ref = ParallelRobDynRef(x0_ref,t,param,inputfunc,f_ref,FL);
+
+% Without robust controller
+K = tf(1,1); %unitary gain as robust controller
+
+%%% Nominal case
+[q_nom,dq_nom,u_nom] = ParallelRobDynamics(x0,t,param,param,FL,K,ref, ...
+    cord,T,sat,FF,sim_type);
+
+%%% Worst uncertain case
+[q_unc,dq_unc,u_unc] = ParallelRobDynamics(x0,t,param, ...
+    max_paramvec_error,FL,K,ref,cord,T,sat,FF,sim_type);
+
+% With robust controller
+K = tf(10,1);
+
+%%% Nominal case
+[q_nom_K,dq_nom_K,u_nom_K] = ParallelRobDynamics(x0,t,param,param,FL, ...
+    K,ref,cord,T,sat,FF,sim_type);
+
+%%% Worst uncertain case
+[q_unc_K,dq_unc_K,u_unc_K] = ParallelRobDynamics(x0,t,param, ...
+    max_paramvec_error,FL,K,ref,cord,T,sat,FF,sim_type);
+
+% Graphics
+
+%%% Actuated data
+if strcmp(cord,'xy')
+    Qa = [1 0;
+        0 1;
+        0 0;
+        0 0;
+        0 0;
+        0 0];
+elseif strcmp(cord,'theta')
+    Qa = [0 0;
+        0 0;
+        1 0;
+        0 0;
+        0 1;
+        0 0];
+end
+
+for i = 1:len_t
+    ref_a(:,i) = Qa'*ref(1:6,i);
+    q_nom_a(:,i) = Qa'*q_nom(:,i);
+    q_unc_a(:,i) = Qa'*q_unc(:,i);
+    q_nom_K_a(:,i) = Qa'*q_nom_K(:,i);
+    q_unc_K_a(:,i) = Qa'*q_unc_K(:,i);
+end
+
+e_nom_a = ref_a-q_nom_a;
+e_unc_a = ref_a-q_unc_a;
+e_nom_K_a = ref_a-q_nom_K_a;
+e_unc_K_a = ref_a-q_unc_K_a;
+
+fig_comp = figure;
+title('Actuated variables');
+subplot(221); hold on; grid on;
+title('Without robust controller');
+plot(t,ref_a(1,:),'--k');
+plot(t,q_nom_a(1,:),'-k');
+plot(t,q_unc_a(1,:),'-r');
+subplot(223); hold on; grid on;
+plot(t,ref_a(2,:),'--k');
+plot(t,q_nom_a(2,:),'-k');
+plot(t,q_unc_a(2,:),'-r');
+subplot(222); hold on; grid on;
+title('With robust controller');
+plot(t,ref_a(1,:),'--k');
+plot(t,q_nom_K_a(1,:),'-k');
+plot(t,q_unc_K_a(1,:),'-r');
+subplot(224); hold on; grid on;
+plot(t,ref_a(2,:),'--k');
+plot(t,q_nom_K_a(2,:),'-k');
+plot(t,q_unc_K_a(2,:),'-r');
+legend('Reference','Nominal','Uncertain');
+
+fig_comp_error = figure;
+title('Actuated variables error');
+subplot(221); hold on; grid on;
+title('Without robust controller');
+plot(t,e_nom_a(1,:),'-k');
+plot(t,e_unc_a(1,:),'-r');
+subplot(223); hold on; grid on;
+plot(t,e_nom_a(2,:),'-k');
+plot(t,e_unc_a(2,:),'-r');
+subplot(222); hold on; grid on;
+title('With robust controller');
+plot(t,e_nom_K_a(1,:),'-k');
+plot(t,e_unc_K_a(1,:),'-r');
+subplot(224); hold on; grid on;
+plot(t,e_nom_K_a(2,:),'-k');
+plot(t,e_unc_K_a(2,:),'-r');
+legend('Nominal','Uncertain');
+
+% save('status.mat');
+
+% sys = feedback(G*K,1);
+% 
+% t = 0:0.01:2;                         % Time Vector
+% u = sin(2*pi*2*t);                                     % Forcing Function
+% y = lsim(sys,u,t);                                % Calculate System Response
+% figure;
+% plot(t,u,'-b',t,y,'-k');
+% legend('ref','output');
+% grid
+
+%%
 
 % x0_a = Qa'*x0(1:6); %actuated initial conditions
 

@@ -59,10 +59,17 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,FL,K,ref,Qa,Qp, ...
     num_K = K.num{:};
     den_K = K.den{:};
     if length(den_K) == 1
-        u_K = ea;
+        u_K = (num_K/den_K)*ea;
         du_K = [0;0];
         d2u_K = [0;0];
-    else
+    elseif length(den_K) == 2
+        n1 = num_K(1);
+        n0 = num_K(2);
+        d1 = den_K(1);
+        d0 = den_K(2);
+        du_K = (1/d1)*(n1*dea+n0*ea-d0*u_K);
+        d2u_K = [0;0];
+    elseif length(den_K) == 3
         n2 = num_K(1);
         n1 = num_K(2);
         n0 = num_K(3);
@@ -70,7 +77,10 @@ function [out] = ParallelRobDynEDO(t,x,param,uncparam,FL,K,ref,Qa,Qp, ...
         d1 = den_K(2);
         d0 = den_K(3);
         d2u_K = (1/d2)*(n1*dea+n0*ea-d1*du_K-d0*u_K);
-%         d2u_K = n1*dea+n0*ea-d1*du_K-d0*u_K;
+    else
+        u_K = ea;
+        du_K = [0;0];
+        d2u_K = [0;0];
     end
     
     % FL control law
